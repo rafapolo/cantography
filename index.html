@@ -6065,6 +6065,11 @@ self.onmessage=async({data})=>{
                 tourCaption("", "");
                 tourShow();
                 tourFly({ center: [8.958, 45.986], zoom: 13, pitch: 72, bearing: -12 }, 2600, { legend: true });
+                // the clicks outlast the flight: the glide starts as it lands, not once they
+                // are done, and lasts until the timeline's end
+                tourLanding.then(() => {
+                    if (run === tourRun) tourDrift({ center: [8.951, 46.004], zoom: 13.9, pitch: 64, bearing: -4 }, 7600);
+                });
                 await tourTimeline(run, true, from);
                 await tourNight(run, false);
                 tourShow("legend");
@@ -6075,7 +6080,6 @@ self.onmessage=async({data})=>{
                     `${tourNum(tourCount("TI", TI, from, to))} foreign companies opened a branch in Ticino, ${tourNum(tourCount("TI", TI, from, to, "c16"))} were closed.`,
                 );
                 await tourLanded(run);
-                tourDrift({ center: [8.951, 46.004], zoom: 13.9, pitch: 64, bearing: -4 }, 6000);
                 await tourPlay(run, from, to, 6000);
 
                 // 7 · the whole country from above, rewound from 2018 to 1887: before 2018 only
