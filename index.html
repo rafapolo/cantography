@@ -2110,6 +2110,18 @@
                 transform: scaleX(0);
                 transform-origin: left;
             }
+            /* the seconds left, in the bar's corner and its colour */
+            #tour-left {
+                position: absolute;
+                right: 16px;
+                top: 8px;
+                font-family: var(--mono);
+                font-size: 12px;
+                font-variant-numeric: tabular-nums;
+                letter-spacing: 0.04em;
+                color: var(--ember);
+                text-shadow: var(--lit);
+            }
             #tour-year {
                 position: absolute;
                 top: calc(var(--lb) + 16px);
@@ -2436,7 +2448,7 @@
         <div id="tour" hidden>
             <div class="bar top"></div>
             <div class="bar bottom"></div>
-            <div id="tour-progress" aria-hidden="true"><i></i></div>
+            <div id="tour-progress" aria-hidden="true"><i></i><span id="tour-left"></span></div>
             <div id="tour-year" aria-hidden="true"></div>
             <p id="tour-cap" aria-live="polite"><span id="tour-kicker"></span><span id="tour-line"></span></p>
             <div id="tour-cursor" aria-hidden="true">
@@ -5550,6 +5562,8 @@ self.onmessage=async({data})=>{
                 if (!tourOn) return;
                 const f = Math.min(1, (performance.now() - tourT0) / TOUR_MS);
                 document.querySelector("#tour-progress i").style.transform = `scaleX(${f})`;
+                const left = Math.ceil((TOUR_MS * (1 - f)) / 1000);
+                document.getElementById("tour-left").textContent = `0:${String(left).padStart(2, "0")}`;
                 requestAnimationFrame(tourProgress);
             }
             // the camera moves are part of the film: essential, so reduced motion doesn't
@@ -5945,6 +5959,7 @@ self.onmessage=async({data})=>{
                     if (tourOn) return;
                     ui.hidden = true;
                     document.querySelector("#tour-progress i").style.transform = "scaleX(0)";
+                    document.getElementById("tour-left").textContent = "";
                 }, 900);
                 document.getElementById("tour-open").focus({ preventScroll: true });
                 updateUrl();
