@@ -1997,9 +1997,15 @@
                 #light-panel {
                     padding-bottom: calc(76px + env(safe-area-inset-bottom)) !important;
                 }
-                .maplibregl-ctrl-bottom-left,
                 .maplibregl-ctrl-bottom-right {
                     bottom: calc(72px + var(--tl-h, 0px)) !important;
+                }
+                /* the credits button sits level with the bar, at the left edge */
+                .maplibregl-ctrl-bottom-left {
+                    bottom: var(--tl-h, 0px) !important;
+                }
+                .maplibregl-ctrl-bottom-left .maplibregl-ctrl {
+                    margin: 0 0 calc(28px + env(safe-area-inset-bottom)) 16px;
                 }
             }
             /* the language buttons keep a finger's width from the collapse arrow */
