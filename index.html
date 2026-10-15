@@ -2257,8 +2257,16 @@
             body.touring .maplibregl-ctrl {
                 visibility: hidden !important;
             }
+            /* the legend stays inside the frame: on a short screen it scrolls */
             body.touring #rail-right {
                 top: calc(var(--lb) + 16px);
+                bottom: calc(var(--lb) + 16px);
+            }
+            /* beside the legend, the caption keeps to the map's side of it */
+            @media (min-width: 981px) {
+                body.touring.tour-legend #tour-cap {
+                    padding-right: calc(8vw + 305px);
+                }
             }
             body.touring #legend,
             body.touring #timeline,
@@ -5648,6 +5656,8 @@ self.onmessage=async({data})=>{
                     return;
                 }
                 const c = document.getElementById("tour-cursor");
+                // a legend cut short by the frame scrolls to the item first
+                el.scrollIntoView({ block: "nearest" });
                 const r = el.getBoundingClientRect();
                 c.style.setProperty("--x", `${r.left + Math.min(r.width / 2, 40)}px`);
                 c.style.setProperty("--y", `${r.top + r.height * 0.55}px`);
