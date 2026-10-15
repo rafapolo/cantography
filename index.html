@@ -2175,7 +2175,7 @@
                 <span id="tl-date" aria-live="off">1883</span>
                 <div class="tl-stats">
                     <span class="tl-open"><span data-i18n="tlOpened">Opened</span> <b id="tl-opened">0</b></span>
-                    <span class="tl-close"><span data-i18n="tlClosed">Closed</span> <b id="tl-closed">0</b></span>
+                    <span class="tl-close" hidden><span data-i18n="tlClosed">Closed</span> <b id="tl-closed">0</b></span>
                     <span><span data-i18n="tlNet">Net</span> <b id="tl-net">0</b></span>
                 </div>
             </div>
@@ -4162,6 +4162,7 @@ vec3 tl_state() {
                 document.getElementById("tl-date").textContent = tlDateText(d);
                 document.getElementById("tl-opened").textContent = o.toLocaleString(loc);
                 document.getElementById("tl-closed").textContent = c.toLocaleString(loc);
+                document.querySelector(".tl-close").hidden = c === 0;
                 document.getElementById("tl-net").textContent = (o >= c ? "+" : "−") + Math.abs(o - c).toLocaleString(loc);
                 const range = document.getElementById("tl-range");
                 const f = clamp(tlT / tl.tMax, 0, 1);
