@@ -2204,13 +2204,12 @@
             // libraries load and run: evaluated before the first paint they held it
             // back on a slow phone, and preloaded from <head> Lighthouse counted them
             // (and the first canton's data) into the LCP, 6.6 s instead of 0.8.
-            // MapLibre v6 ships ESM only; deck.gl is a global script.
+            // deck.gl is vendor/deck.mjs, bundled by scripts/build.js (`bun run build`)
+            // with only the classes used here: a third of the full build's bytes.
             await new Promise((r) => requestAnimationFrame(() => setTimeout(r)));
-            const loadScript = (src) =>
-                new Promise((res, rej) => document.head.append(Object.assign(document.createElement("script"), { src, onload: res, onerror: rej })));
-            const [maplibregl] = await Promise.all([
+            const [maplibregl, deck] = await Promise.all([
                 import("https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-gl.mjs"),
-                loadScript("https://unpkg.com/deck.gl@9.4.0/dist.min.js"),
+                import("./vendor/deck.mjs"),
             ]);
 
             // ── URL params ────────────────────────────────────────────────────────

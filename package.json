@@ -8,6 +8,10 @@
     "test": "echo 'No test suite — static site' && exit 0"
   },
   "devDependencies": {
+    "@deck.gl/core": "9.4.0",
+    "@deck.gl/extensions": "9.4.0",
+    "@deck.gl/layers": "9.4.0",
+    "@deck.gl/maplibre": "9.4.0",
     "html-minifier-terser": "^7.2.0"
   }
 }
