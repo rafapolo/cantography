@@ -2267,7 +2267,8 @@
         </div>
 
         <div id="rail-right">
-        <div id="legend" class="panel" aria-label="Legend filter panel">
+        <!-- collapsed until the map is in: on desktop it slides in a second after the boot -->
+        <div id="legend" class="panel collapsed" aria-label="Legend filter panel">
             <div class="panel-header">
                 <span class="panel-dot" aria-hidden="true">⊟</span>
                 <h2 id="legend-title" data-i18n="legendTitle">Legend</h2>
@@ -4883,6 +4884,13 @@ vec3 tl_state() {
                     booted = true;
                     hideProgress();
                     setTimeout(adaptQuality, 1500);
+                    // the legend slides in a second after the map and the notice are done,
+                    // on desktop and only if nobody opened or shut it in the meantime
+                    setTimeout(() => {
+                        if (legendTouched || window.innerWidth <= 980) return;
+                        document.getElementById("legend").classList.remove("collapsed");
+                        document.getElementById("toggle-legend").setAttribute("aria-expanded", "true");
+                    }, 1000);
                 };
                 showProgress(t("loadingCompanies"), 0);
                 const counted = (d) => {
@@ -5142,6 +5150,8 @@ vec3 tl_state() {
             placeDock();
 
             // ── Panel toggles ──────────────────────────────────────────────────────
+            // set by a click on the legend's toggle or arrow: the boot leaves it be then
+            let legendTouched = false;
             // phones: one bottom sheet at a time, the company card among them
             function closeSheets() {
                 for (const [p, b] of [["canton-panel", "toggle-canton"], ["legend", "toggle-legend"], ["light-panel", "toggle-light"]]) {
@@ -5170,6 +5180,7 @@ vec3 tl_state() {
             document
                 .getElementById("toggle-legend")
                 .addEventListener("click", () => {
+                    legendTouched = true;
                     const panel = document.getElementById("legend");
                     const btn = document.getElementById("toggle-legend");
                     if (window.innerWidth > 980) {
@@ -5204,6 +5215,7 @@ vec3 tl_state() {
                 document.getElementById("toggle-canton").setAttribute("aria-expanded", "false");
             });
             document.getElementById("collapse-legend").addEventListener("click", () => {
+                legendTouched = true;
                 document.getElementById("legend").classList.add("collapsed");
                 document.getElementById("toggle-legend").setAttribute("aria-expanded", "false");
             });
