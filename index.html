@@ -3938,7 +3938,7 @@ self.onmessage=async({data:{id,cantonId,base}})=>{try{const c=await load(base,ca
                     getFillColor: [...NIGHT_RGB, 255],
                     getRadius: 1,
                     radiusUnits: "pixels",
-                    radiusScale: NIGHT_RADIUS * Math.max(night.size, 0.1) * tourLampScale,
+                    radiusScale: NIGHT_RADIUS * Math.max(night.size, 0.1),
                     radiusMinPixels: 0,
                     radiusMaxPixels: 100,
                     // the light is the shader's gain, not the layer opacity
@@ -4371,7 +4371,7 @@ vec3 tl_state() {
                     getFillColor: [...NIGHT_RGB, 255],
                     getRadius: 1,
                     radiusUnits: "pixels",
-                    radiusScale: NIGHT_RADIUS * Math.max(night.size, 0.1) * tourLampScale,
+                    radiusScale: NIGHT_RADIUS * Math.max(night.size, 0.1),
                     radiusMinPixels: 0,
                     radiusMaxPixels: 100,
                     light: night.light,
@@ -5611,9 +5611,9 @@ self.onmessage=async({data})=>{
             // ── Tour: a ~1 min camera ride for the video ────────────────────────────
             // Geneva's associations and foundations, Zurich's AGs and GmbHs, Bern's sole
             // proprietors, Vaud's closings around the pandemic, a search, Lugano's foreign
-            // branches, and the whole country rewound to 2000, then lit again as it is
-            // today. On a wide screen a drawn pointer clicks the real legend, timeline and
-            // search on the way, so the film also shows how to use them.
+            // branches, and Basel lighting up from 1945, then back to the whole country.
+            // On a wide screen a drawn pointer clicks the real legend, timeline and search
+            // on the way, so the film also shows how to use them.
             // Each scene's numbers are counted from the timeline itself.
             // ?tour=1 starts it once the map is in, ?tour=1&t=60 about a minute in; Esc
             // or ✕ stops it.
@@ -5661,20 +5661,6 @@ self.onmessage=async({data})=>{
                     tourSkip = 0;
                     tourT0 = performance.now() - tourV;
                 }
-            }
-            // the lamps' size on top of the light panel's, eased: the country at night reads
-            // better with bigger lamps
-            let tourLampScale = 1;
-            function tourLamps(run, to, ms) {
-                const from = tourLampScale, t0 = performance.now();
-                const frame = (now) => {
-                    if (run !== tourRun) return;
-                    const f = tourSkipping() ? 1 : Math.min(1, (now - t0) / ms);
-                    tourLampScale = from + (to - from) * f;
-                    redrawLayer();
-                    if (f < 1) requestAnimationFrame(frame);
-                };
-                requestAnimationFrame(frame);
             }
             function tourProgress() {
                 if (!tourOn) return;
@@ -5907,6 +5893,7 @@ self.onmessage=async({data})=>{
                 [[7.447, 46.948], [13, 12, 11]],
                 [[6.632, 46.522], [11, 10, 9]],
                 [[8.951, 46.004], [13, 12, 11]],
+                [[7.589, 47.56], [13, 12, 11]],
             ];
             function tourTileUrls() {
                 const tmpl = map.getSource("openmaptiles")?.tiles?.[0];
@@ -6130,25 +6117,26 @@ self.onmessage=async({data})=>{
                 await tourLanded(run);
                 await tourPlay(run, from, to, 6000);
 
-                // 7 · the whole country, tilted and slowly turning, lighting up from 1887 to
-                // today in night view, its lamps bigger; no flashes, they just come on
+                // 7 · Basel, tilted and slowly turning, lighting up from 1945 to 2025 in night
+                // view, no flashes: the lamps just come on. Then back to the whole country
                 tourCaption("", "");
                 tourYear("");
                 tourShow();
                 tourForms(null);
                 if (!nightView) document.getElementById("btn-night-view").click();
-                const y1887 = tourDay("1887-01-01");
-                await tourTimeline(run, true, y1887);
-                tourFly({ ...home, pitch: 45, bearing: -15 }, 2000);
-                tourLamps(run, 2, 1500);
+                const y1945 = tourDay("1945-01-01"), y2025 = tourDay("2025-12-31");
+                await tourTimeline(run, true, y1945);
+                tourFly({ center: [7.5886, 47.5596], zoom: 12.6, pitch: 55, bearing: -20 }, 2600);
                 await tourLanded(run);
-                tourCaption(`1887 → ${new Date(TL_EPOCH + tl.lastDay * 864e5).getUTCFullYear()}`, "Every company, lit in the order it opened.");
-                tourOrbit(run, {}, 30, 8000);
-                await tourPlay(run, y1887, tl.lastDay, 5000, { clock: true, flash: false });
+                tourCaption("Basel · 1945–2025", "Every company, lit in the order it opened.");
+                tourOrbit(run, { zoom: 12.9 }, 30, 5000);
+                // paced by the calendar, not the timeline's clock: that one gives 2018–2025 most
+                // of the run, and Basel is mostly lit by 2018
+                await tourPlay(run, y1945, y2025, 5000, { flash: false });
                 tourYear("");
                 tourCaption("cantography.ch", "Switzerland, one company at a time.");
                 await tourTimeline(run, false);
-                tourLamps(run, 1, 2500);
+                tourFly(home, 2500);
                 await tourWait(run, 3000);
                 document.querySelector("#tour-progress i").style.transform = "scaleX(1)";
             }
@@ -6164,7 +6152,6 @@ self.onmessage=async({data})=>{
                 map.stop();
                 map.setPadding({ top: 0, bottom: 0, left: 0, right: 0 });
                 tourSkip = 0;
-                tourLampScale = 1;
                 if (map.getZoom() < 6) map.jumpTo({ zoom: 6 });
                 map.setMinZoom(6);
                 const s = tourSaved;
