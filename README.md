@@ -90,14 +90,14 @@ For those curious about how it works under the hood:
 - **One list of today's companies** feeds both views: `scripts/canton_files.py` writes the 26 canton files and the search index from LINDAS, so at the end of the timeline every lit lamp sits on a map point
 - **Entry year** (the *'98*): the cantonal register's date, else the SHAB new entry, else an estimate from the order of the register ids (`scripts/opening_dates.py`); known for 99.99% of companies
 - The canton files are gzipped columnar JSON (~12 MB for all 26), fetched on demand — no server needed. Bern is preloaded and streams in alongside the map style, so nothing waits on data before the first paint
-- Parsing runs in a **web worker** so the UI stays responsive while large cantons load
+- Fetching, unzipping and grouping a canton by address run in a **web worker**, which hands the points back as typed arrays (transferred, not copied) and the names as one string, so a canton loads without blocking the page
 - Canton and legal-form filters run on the GPU (deck.gl `DataFilterExtension`), on the map and the timeline alike, so toggling them never re-uploads the points
 - A separate **search index** (`search_index.json.gz`, ~9 MB) is downloaded, accent-folded and queried in a second web worker, so searching 795,000 names never blocks the map
 - The **night view** is a custom deck.gl layer: additive blending, auto exposure from the lamps in view and a per-lamp twinkle in the shader
 - The **timeline** (`data/timeline/`) has one lamp per company life, 1,049,000 in all. `events.bin.gz` (3.9 MB) holds, per lamp, its position on a uint16 grid (3–5 m) along a Morton curve, delta-coded and split into byte planes, its entry and deletion days, legal form and canton. The shader works out from the screen clock whether each lamp is dark, flashing, lit or burning out, so a frame only changes one uniform. Names come in 65 regional chunks of ~180 kB, fetched on the first hover over their region
 - A **service worker** caches the data files after the first visit; each rebuild bumps their version
 - The layout adapts to phones (bottom sheets, notch and home-bar safe areas, `100dvh`, 16px inputs so iOS does not zoom)
-- The map renders entirely in your browser using [deck.gl](https://deck.gl) and [MapLibre GL](https://maplibre.org/)
+- The map renders entirely in your browser using [deck.gl](https://deck.gl) and [MapLibre GL](https://maplibre.org/). `bun run build` bundles just the deck.gl classes the page uses into `vendor/deck.mjs` (223 kB gzipped, against 575 kB for the full build); run it once before serving the source folder
 - Keyboard navigation, ARIA labels, and colour contrast meet WCAG AA accessibility standards
 - The data files are gzip written by [zopfli](https://github.com/google/zopfli) (`scripts/zopfli_data.py`): the same format the browser already unzips, ~6% smaller than `gzip -9`. The deploy ships only what the page fetches
 - The whole thing is a single HTML file + data files, minified by `scripts/build.js` and hosted for free on GitHub Pages at [cantography.ch](https://cantography.ch) (formerly SwissViz)

@@ -3300,7 +3300,7 @@ in float night_seed;
                     dayStyle = null;
                 }
             }
-            const cantonData = {}; // id → point array
+            const cantonData = {}; // id → the canton's columns, from the parse worker (see parse())
             const cantonTotals = {}; // id → company count of a loaded canton
                         let overlay = null;
             let map = null;
@@ -3327,12 +3327,30 @@ in float night_seed;
             const _workerSrc = `
 const T=${JSON.stringify(T_DECODE)};
 const C=${JSON.stringify(colorAssignments)};
-function h2r(h){const r=/^#?([a-f\\d]{2})([a-f\\d]{2})([a-f\\d]{2})$/i.exec(h);return r?[parseInt(r[1],16),parseInt(r[2],16),parseInt(r[3],16)]:[100,100,100];}
-const _cCache=new Map(),_lCache=new Map();
+const _lCache=new Map();
 const LB=new Map(C.map((a,i)=>[a.label,1<<i]));
-function gc(rf){if(_cCache.has(rf))return _cCache.get(rf);const u=rf.toUpperCase();for(const a of C){if(u.includes(a.rfKey)){const v=h2r(a.hex);_cCache.set(rf,v);return v;}}const f=h2r('#1a1a30');_cCache.set(rf,f);return f;}
 function gl(rf){if(_lCache.has(rf))return _lCache.get(rf);const u=rf.toUpperCase();for(const a of C){if(u.includes(a.rfKey)){_lCache.set(rf,a.label);return a.label;}}_lCache.set(rf,rf);return rf;}
-function parse(col,canton){const m=new Map(),n=col.n.length;for(let i=0;i<n;i++){const tRaw=col.t[i]||'',rf=(T[tRaw]||tRaw).trim();if(!rf)continue;const lat=col.lat[i],lng=col.lng[i];if(!lat||!lng)continue;const k=Math.round(lat*1e5)*1000000+Math.round(lng*1e5),label=gl(rf),co={name:col.n[i]||'',label,year:col.y[i]};if(!m.has(k))m.set(k,{position:[lng,lat],canton,companies:[],rechtsform:rf,label,color:gc(rf),mask:0});const p=m.get(k);p.companies.push(co);p.mask|=LB.get(label)||0;}return[...m.values()];}
+// one address = one point; its companies are the range off[p]..off[p+1] of the
+// company columns, in file order. Typed arrays go back as transferables and the
+// names as one string: cloning a point object per address cost the page ~1.2 s
+// of a throttled phone's main thread
+function parse(col,canton){
+  const n=col.n.length,m=new Map(),pt=new Int32Array(n).fill(-1),lab=new Uint16Array(n),labels=[],li=new Map(),lng=[],lat=[],mask=[],cnt=[];
+  for(let i=0;i<n;i++){
+    const tRaw=col.t[i]||'',rf=(T[tRaw]||tRaw).trim();if(!rf)continue;
+    const la=col.lat[i],lo=col.lng[i];if(!la||!lo)continue;
+    const k=Math.round(la*1e5)*1000000+Math.round(lo*1e5),label=gl(rf);
+    let p=m.get(k);if(p===undefined){p=lng.length;m.set(k,p);lng.push(lo);lat.push(la);mask.push(0);cnt.push(0);}
+    let l=li.get(label);if(l===undefined){l=labels.length;li.set(label,l);labels.push(label);}
+    pt[i]=p;lab[i]=l;cnt[p]++;mask[p]|=LB.get(label)||0;
+  }
+  const P=lng.length,off=new Uint32Array(P+1);
+  for(let p=0;p<P;p++)off[p+1]=off[p]+cnt[p];
+  const N=off[P],fill=off.slice(0,P),pos=new Float64Array(2*P),clab=new Uint16Array(N),year=new Uint16Array(N),names=new Array(N);
+  for(let p=0;p<P;p++){pos[2*p]=lng[p];pos[2*p+1]=lat[p];}
+  for(let i=0;i<n;i++){const p=pt[i];if(p<0)continue;const j=fill[p]++;clab[j]=lab[i];year[j]=col.y[i]||0;names[j]=col.n[i]||'';}
+  return{canton,n:P,pos,mask:Uint32Array.from(mask),off,lab:clab,labels,year,names:names.join('\\n')};
+}
 // the worker fetches, gunzips and parses a canton itself: none of it runs on the
 // page's thread, and only the grouped points travel back
 async function gz(url){const r=await fetch(url);if(!r.ok)throw new Error('HTTP '+r.status+' '+url);return new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).json();}
@@ -3345,7 +3363,7 @@ async function load(base,id){
   for(const c of chunks)for(let i=0;i<c.n.length;i++){col.n.push(c.n[i]);col.t.push(c.t[i]);col.lat.push(c.lat[i]);col.lng.push(c.lng[i]);col.y.push(c.y?c.y[i]:0);}
   return parse(col,id);
 }
-self.onmessage=async({data:{id,cantonId,base}})=>{try{self.postMessage({id,points:await load(base,cantonId)});}catch(e){self.postMessage({id,error:String(e)});}};
+self.onmessage=async({data:{id,cantonId,base}})=>{try{const c=await load(base,cantonId);self.postMessage({id,points:c},[c.pos.buffer,c.mask.buffer,c.off.buffer,c.lab.buffer,c.year.buffer]);}catch(e){self.postMessage({id,error:String(e)});}};
 `;
             const _parseWorker = new Worker(URL.createObjectURL(new Blob([_workerSrc], { type: "application/javascript" })));
             const _parsePending = new Map();
@@ -3371,6 +3389,38 @@ self.onmessage=async({data:{id,cantonId,base}})=>{try{self.postMessage({id,point
                 });
             }
 
+            // ── A canton's columns ────────────────────────────────────────────────
+            // cols.n points (addresses); point i holds the companies off[i]..off[i+1]
+            // of the company columns (lab, year and the names, split on first use)
+            const companyNames = (cols) => (cols._names ??= cols.names.split("\n"));
+            // company → its point, for the search
+            function companyPoints(cols) {
+                if (cols._pointOf) return cols._pointOf;
+                const of = new Uint32Array(cols.off[cols.n]);
+                for (let i = 0; i < cols.n; i++) of.fill(i, cols.off[i], cols.off[i + 1]);
+                return (cols._pointOf = of);
+            }
+            // the legend bit of each of the canton's labels; 0 for a form outside the legend
+            const labelBits = (cols) =>
+                (cols._bits ??= Uint32Array.from(cols.labels, (l) => {
+                    const k = colorAssignments.findIndex((a) => a.label === l);
+                    return k < 0 ? 0 : 1 << k;
+                }));
+            // a point as the card and the search read it, its companies built on demand
+            function pointView(cols, i) {
+                return {
+                    key: `pt:${cols.canton}:${i}`,
+                    canton: cols.canton,
+                    position: [cols.pos[2 * i], cols.pos[2 * i + 1]],
+                    get companies() {
+                        const names = companyNames(cols), out = [];
+                        for (let j = cols.off[i]; j < cols.off[i + 1]; j++)
+                            out.push({ name: names[j], label: cols.labels[cols.lab[j]], year: cols.year[j] });
+                        return out;
+                    },
+                };
+            }
+
             // ── Recompute legend/canton counts and frame color from the viewport ──────
             const _cantonCountEls = new Map(); // id → .canton-count element
             function updateLegendCounts() {
@@ -3380,28 +3430,26 @@ self.onmessage=async({data:{id,cantonId,base}})=>{try{self.postMessage({id,point
                 const s = bounds?.getSouth() ?? -Infinity, n = bounds?.getNorth() ?? Infinity;
                 const labelMask = activeLabelMask();
                 let r = 0, g = 0, bl = 0, shown = 0;
-                for (const [id, pts] of Object.entries(cantonData)) {
+                for (const [id, cols] of Object.entries(cantonData)) {
                     // inactive cantons aren't drawn, so show their full total instead of a viewport count
                     let cnt = cantonTotals[id] || 0;
                     if (activeCantons.has(id)) {
                         cnt = 0;
-                        for (let i = 0; i < pts.length; i++) {
-                            const d = pts[i];
-                            const [lng, lat] = d.position;
+                        const { pos, off, lab, mask, labels } = cols;
+                        const perLabel = new Uint32Array(labels.length);
+                        for (let i = 0; i < cols.n; i++) {
+                            const lng = pos[2 * i], lat = pos[2 * i + 1];
                             if (lng < w || lng > e || lat < s || lat > n) continue;
-                            const cos = d.companies;
-                            cnt += cos.length;
-                            for (let j = 0; j < cos.length; j++) {
-                                const lbl = cos[j].label;
-                                counts[lbl] = (counts[lbl] || 0) + 1;
-                            }
-                            if (!(d.mask & labelMask)) continue;
-                            const rgb = nightView ? NIGHT_UI_RGB : pointRgb(d);
+                            cnt += off[i + 1] - off[i];
+                            for (let j = off[i]; j < off[i + 1]; j++) perLabel[lab[j]]++;
+                            if (!(mask[i] & labelMask)) continue;
+                            const rgb = nightView ? NIGHT_UI_RGB : pointRgb(cols, i, labelMask);
                             r += rgb[0]; g += rgb[1]; bl += rgb[2]; shown++;
                         }
+                        labels.forEach((lbl, k) => { if (perLabel[k]) counts[lbl] = (counts[lbl] || 0) + perLabel[k]; });
                     }
                     // only loaded cantons; unloaded ones keep their static total
-                    if (!pts.length) continue;
+                    if (!cols.n) continue;
                     if (!_cantonCountEls.has(id))
                         _cantonCountEls.set(id, document.querySelector(`.canton-item[data-id="${id}"] .canton-count`));
                     const el = _cantonCountEls.get(id);
@@ -3510,10 +3558,7 @@ self.onmessage=async({data:{id,cantonId,base}})=>{try{self.postMessage({id,point
                     try {
                         const points = await loadCantonPoints(canton.id);
                         cantonData[canton.id] = points;
-                        const companyCount = points.reduce(
-                            (s, p) => s + p.companies.length,
-                            0,
-                        );
+                        const companyCount = points.off[points.n];
                         cantonTotals[canton.id] = companyCount;
                         if (countEl)
                             countEl.textContent = `(${companyCount.toLocaleString(numLocale())})`;
@@ -3533,25 +3578,49 @@ self.onmessage=async({data:{id,cantonId,base}})=>{try{self.postMessage({id,point
             }
 
             // ── Layer builder ──────────────────────────────────────────────────────
-            function pointRgb(d) {
-                const matched = d.companies.find((c) => activeLabels.has(c.label));
-                // use pre-built Map for O(1) color lookup; fallback to per-point cached color
-                // a form outside the legend keeps its own name as its label, so getColor reads it
-                if (matched) return _labelToRgb.get(matched.label) ?? getColor(matched.label);
-                return d.color;
+            // the color of the point's first company in an active legal form; a point
+            // with none is filtered out, so the fallback is never drawn
+            const _bitRgb = colorAssignments.map((a) => _labelToRgb.get(a.label));
+            const _noFormRgb = hexToRgb("#1a1a30");
+            function pointRgb(cols, i, labelMask) {
+                const bits = labelBits(cols);
+                for (let j = cols.off[i]; j < cols.off[i + 1]; j++) {
+                    const b = bits[cols.lab[j]] & labelMask;
+                    if (b) return _bitRgb[31 - Math.clz32(b)];
+                }
+                return _noFormRgb;
             }
 
             // All loaded points live in one array that only changes when a canton
             // finishes loading; canton and legal-form filters run on the GPU
             // (DataFilterExtension) so toggling them never re-uploads positions
-            let allPoints = [];
+            let allPoints = { n: 0, cols: [], starts: [], cantonIx: new Uint8Array(0), mask: new Uint32Array(0), pos: new Float64Array(0) };
             let _allPointsKey = "";
             function syncAllPoints() {
                 const key = Object.keys(cantonData).join();
                 if (key === _allPointsKey) return;
                 _allPointsKey = key;
-                allPoints = [].concat(...Object.values(cantonData));
+                const cols = Object.values(cantonData);
+                const n = cols.reduce((s, c) => s + c.n, 0);
+                const pos = new Float64Array(2 * n), mask = new Uint32Array(n), cantonIx = new Uint8Array(n), starts = [];
+                let o = 0;
+                cols.forEach((c, k) => {
+                    pos.set(c.pos, 2 * o);
+                    mask.set(c.mask, o);
+                    cantonIx.fill(k, o, o + c.n);
+                    starts.push(o);
+                    o += c.n;
+                });
+                // one attribute object for every layer built from these points: deck
+                // sees the same positions and never uploads them again
+                allPoints = { n, cols, starts, cantonIx, mask, pos, position: { value: pos, size: 2 } };
             }
+            // the picked index back to its canton's point
+            function pointAt(gi) {
+                const k = allPoints.cantonIx[gi];
+                return pointView(allPoints.cols[k], gi - allPoints.starts[k]);
+            }
+            const cantonsOn = () => allPoints.cols.map((c) => (activeCantons.has(c.canton) ? 1 : 0));
             // bit i set ⇔ colorAssignments[i] is active (points carry the same mask)
             function activeLabelMask() {
                 let m = 0;
@@ -3569,11 +3638,12 @@ self.onmessage=async({data:{id,cantonId,base}})=>{try{self.postMessage({id,point
                 if (key === _visibleKey) return;
                 _visibleKey = key;
                 const labelMask = activeLabelMask();
+                const on = cantonsOn();
+                const { n, pos, mask, cantonIx } = allPoints;
                 const xy = [];
-                for (let i = 0; i < allPoints.length; i++) {
-                    const d = allPoints[i];
-                    if (!activeCantons.has(d.canton) || !(d.mask & labelMask)) continue;
-                    xy.push(mercX(d.position[0]), mercY(d.position[1]));
+                for (let i = 0; i < n; i++) {
+                    if (!on[cantonIx[i]] || !(mask[i] & labelMask)) continue;
+                    xy.push(mercX(pos[2 * i]), mercY(pos[2 * i + 1]));
                 }
                 visibleXY = Float64Array.from(xy);
             }
@@ -3602,24 +3672,56 @@ self.onmessage=async({data:{id,cantonId,base}})=>{try{self.postMessage({id,point
             const _touchMQ = window.matchMedia("(hover: none)");
             let _filterVersion = 0; // bumped on every canton/legend change
 
-            function buildLayer() {
+            // The layer's binary data: the filter and the forms' colors, redone only
+            // when the points, the filters or the view change (buildLayer runs every
+            // twinkle frame, and an unchanged data object costs deck nothing)
+            let _layerData = null, _layerDataKey = "";
+            function layerData() {
                 syncAllPoints();
+                const key = `${_allPointsKey}|${_filterVersion}|${nightView}`;
+                if (key === _layerDataKey) return _layerData;
+                _layerDataKey = key;
                 const labelMask = activeLabelMask();
+                const on = cantonsOn();
+                const { n, cols, cantonIx, mask } = allPoints;
+                const filter = new Float32Array(n);
+                for (let i = 0; i < n; i++) filter[i] = on[cantonIx[i]] && mask[i] & labelMask ? 1 : 0;
+                const attributes = { getPosition: allPoints.position, getFilterValue: { value: filter, size: 1 } };
+                // night view: no color per point, so the layer's single night color applies
+                if (!nightView) {
+                    // the forms' colors turned down to about an ember's light
+                    const rgba = new Uint8ClampedArray(4 * n);
+                    let gi = 0;
+                    for (const c of cols)
+                        for (let i = 0; i < c.n; i++, gi++) {
+                            if (!filter[gi]) continue;
+                            const rgb = pointRgb(c, i, labelMask);
+                            rgba[4 * gi] = rgb[0] * LAMP_TONE;
+                            rgba[4 * gi + 1] = rgb[1] * LAMP_TONE;
+                            rgba[4 * gi + 2] = rgb[2] * LAMP_TONE;
+                            rgba[4 * gi + 3] = 255;
+                        }
+                    attributes.getFillColor = { value: rgba, size: 4, normalized: true };
+                }
+                return (_layerData = { length: n, attributes });
+            }
+            // binary data picks an index, not an object: the card reads the point behind it
+            const withPoint = (info) => Object.assign(info, { object: info.index >= 0 ? pointAt(info.index) : null });
+
+            function buildLayer() {
                 const shared = {
-                    data: allPoints,
-                    getPosition: (d) => d.position,
-                    getFilterValue: (d) => (activeCantons.has(d.canton) && d.mask & labelMask ? 1 : 0),
+                    data: layerData(),
                     filterRange: [1, 1],
                     extensions: [_dataFilter],
                     pickable: true,
                     stroked: false,
                     onHover: (info) => {
                         if (_touchMQ.matches) return;
-                        showTooltip(info);
+                        showTooltip(withPoint(info));
                     },
                     // touch: tap opens the bottom sheet; mouse: click pins the card
                     onClick: (info) => {
-                        showTooltip(info, { pin: !_touchMQ.matches });
+                        showTooltip(withPoint(info), { pin: !_touchMQ.matches });
                         return true;
                     },
                 };
@@ -3627,14 +3729,8 @@ self.onmessage=async({data:{id,cantonId,base}})=>{try{self.postMessage({id,point
                 return new NightLayer({
                     ...shared,
                     id: "companies-night",
-                    getFillColor: nightView
-                        ? [...NIGHT_RGB, 255]
-                        : (d) => {
-                              // the forms' colors turned down to about an ember's light
-                              const c = pointRgb(d);
-                              return [c[0] * LAMP_TONE, c[1] * LAMP_TONE, c[2] * LAMP_TONE, 255];
-                          },
-                    updateTriggers: { getFillColor: [nightView, labelMask], getFilterValue: [_filterVersion] },
+                    // night view; by day the binary colors from layerData() win
+                    getFillColor: [...NIGHT_RGB, 255],
                     getRadius: 1,
                     radiusUnits: "pixels",
                     radiusScale: NIGHT_RADIUS * Math.max(night.size, 0.1),
@@ -4801,11 +4897,11 @@ vec3 tl_state() {
                 if (touch) closeSheets();
                 tt.classList.toggle("pinned", _ttPinned);
                 // same point under the cursor and same filters: just follow the mouse
-                if (info.object === _ttObject && _ttVersion === _filterVersion && !touch && !opts.pin) {
+                if (info.object.key === _ttObject && _ttVersion === _filterVersion && !touch && !opts.pin) {
                     placeTooltip(tt, info);
                     return;
                 }
-                _ttObject = info.object;
+                _ttObject = info.object.key;
                 _ttVersion = _filterVersion;
 
                 const list = info.object.companies.filter((c) =>
@@ -5091,20 +5187,20 @@ self.onmessage=async({data})=>{
                 // one row per name, covering every loaded canton it is registered in
                 const ranked = [];
                 const byName = new Map(); // name → hit
-                for (const [cantonId, points] of Object.entries(cantonData)) {
-                    for (const point of points) {
-                        for (const co of point.companies) {
-                            const r = matchRank(foldText(co.name), q);
-                            if (r < 0) continue;
-                            const seen = byName.get(co.name);
-                            if (seen) {
-                                if (!seen.cantons.includes(cantonId)) seen.cantons.push(cantonId);
-                                continue;
-                            }
-                            const hit = { name: co.name, label: co.label, cantonId, point, cantons: [cantonId] };
-                            byName.set(co.name, hit);
-                            ranked.push([r, hit]);
+                for (const [cantonId, cols] of Object.entries(cantonData)) {
+                    const names = companyNames(cols), pointOf = companyPoints(cols);
+                    for (let j = 0; j < names.length; j++) {
+                        const name = names[j];
+                        const r = matchRank(foldText(name), q);
+                        if (r < 0) continue;
+                        const seen = byName.get(name);
+                        if (seen) {
+                            if (!seen.cantons.includes(cantonId)) seen.cantons.push(cantonId);
+                            continue;
                         }
+                        const hit = { name, label: cols.labels[cols.lab[j]], cantonId, point: pointView(cols, pointOf[j]), cantons: [cantonId] };
+                        byName.set(name, hit);
+                        ranked.push([r, hit]);
                     }
                 }
                 // as the worker ranks: shorter names first, then A-Z
@@ -5185,7 +5281,15 @@ self.onmessage=async({data})=>{
                 // every location of the name, across all its cantons
                 function resolvePts() {
                     if (hit.point && cantons.length === 1) return [hit.point];
-                    return cantons.flatMap((id) => (cantonData[id] ?? []).filter((p) => p.companies.some((c) => c.name === name)));
+                    return cantons.flatMap((id) => {
+                        const cols = cantonData[id];
+                        if (!cols) return [];
+                        const names = companyNames(cols), pointOf = companyPoints(cols), out = [];
+                        // companies run in point order, so a point's repeats are adjacent
+                        for (let j = 0; j < names.length; j++)
+                            if (names[j] === name && pointOf[j] !== out.at(-1)?.i) out.push({ i: pointOf[j] });
+                        return out.map(({ i }) => pointView(cols, i));
+                    });
                 }
 
                 function placeMarkers() {
