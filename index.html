@@ -3309,6 +3309,8 @@ async function load(base,id){
   // { chunks: ["XX_0.json.gz", ...] } or { _chunks: N }
   const files=Array.isArray(meta.chunks)?meta.chunks:Array.from({length:meta._chunks},(_,i)=>id+'_'+i+'.json.gz');
   const chunks=await Promise.all(files.map(f=>gz(base+'data/'+f)));
+  // one chunk (most cantons) is parsed as it came, without copying its columns
+  if(chunks.length===1){const c=chunks[0];return parse({n:c.n,t:c.t,lat:c.lat,lng:c.lng,y:c.y||[]},id);}
   const col={n:[],t:[],lat:[],lng:[],y:[]};
   for(const c of chunks)for(let i=0;i<c.n.length;i++){col.n.push(c.n[i]);col.t.push(c.t[i]);col.lat.push(c.lat[i]);col.lng.push(c.lng[i]);col.y.push(c.y?c.y[i]:0);}
   return parse(col,id);
@@ -3590,13 +3592,18 @@ self.onmessage=async({data:{id,cantonId,base}})=>{try{const c=await load(base,ca
                 const labelMask = activeLabelMask();
                 const on = cantonsOn();
                 const { n, pos, mask, cantonIx } = allPoints;
-                const xy = [];
+                const xy = visibleBuf(n);
+                let k = 0;
                 for (let i = 0; i < n; i++) {
                     if (!on[cantonIx[i]] || !(mask[i] & labelMask)) continue;
-                    xy.push(mercX(pos[2 * i]), mercY(pos[2 * i + 1]));
+                    xy[k++] = mercX(pos[2 * i]);
+                    xy[k++] = mercY(pos[2 * i + 1]);
                 }
-                visibleXY = Float64Array.from(xy);
+                visibleXY = xy.subarray(0, k);
             }
+            // visibleXY is a view on one buffer, refilled in place instead of a new array each time
+            let _visibleBuf = new Float64Array(0);
+            const visibleBuf = (n) => (_visibleBuf.length < 2 * n ? (_visibleBuf = new Float64Array(2 * n)) : _visibleBuf);
             // the timeline: the lamps lit on the day shown and not filtered out, one per
             // address as they are drawn, so auto adapts to how many there are then
             function syncTimelineXY() {
@@ -3607,16 +3614,20 @@ self.onmessage=async({data:{id,cantonId,base}})=>{try{const c=await load(base,ca
                 // auto runs before the layer is built: bring the filter up to date first
                 if (tl.filterVersion !== _filterVersion) tlApplyLegend();
                 const keep = tl.data.attributes.getFilterValue?.value;
-                const xy = [];
-                let last = -1;
-                for (let i = 0; i < tl.n; i++) {
-                    if (tl.addr[i] === last || (keep && !keep[i])) continue;
-                    const o = tl.o16[i], c = tl.c16[i];
+                const { n, addr, o16, c16 } = tl;
+                // the lamps in Web Mercator, worked out once: sin and log per lamp were most of the walk
+                const merc = (tl.merc ??= Float64Array.from(tl.pos, (v, j) => (j & 1 ? mercY(v) : mercX(v))));
+                const xy = visibleBuf(n);
+                let last = -1, k = 0;
+                for (let i = 0; i < n; i++) {
+                    if (addr[i] === last || (keep && !keep[i])) continue;
+                    const o = o16[i], c = c16[i];
                     if (o === TL_NONE || o > day || (c !== TL_NONE && c <= day)) continue;
-                    last = tl.addr[i];
-                    xy.push(mercX(tl.pos[2 * i]), mercY(tl.pos[2 * i + 1]));
+                    last = addr[i];
+                    xy[k++] = merc[2 * i];
+                    xy[k++] = merc[2 * i + 1];
                 }
-                visibleXY = Float64Array.from(xy);
+                visibleXY = xy.subarray(0, k);
             }
             const _dataFilter = new deck.DataFilterExtension({ filterSize: 1 });
             const _touchMQ = window.matchMedia("(hover: none)");
@@ -4195,30 +4206,53 @@ vec3 tl_state() {
             function tlDateText(day) {
                 const date = new Date(TL_EPOCH + Math.floor(day) * 864e5);
                 if (day < TL_SPLIT_DAY) return String(date.getUTCFullYear());
-                return date.toLocaleDateString(numLocale(), { year: "numeric", month: "short", timeZone: "UTC" });
+                return tlFormats(numLocale()).date.format(date);
+            }
+            // the formatters behind toLocaleString, made once per language instead of every frame
+            let _tlFormats = null;
+            function tlFormats(loc) {
+                if (_tlFormats?.loc !== loc)
+                    _tlFormats = {
+                        loc,
+                        num: new Intl.NumberFormat(loc),
+                        date: new Intl.DateTimeFormat(loc, { year: "numeric", month: "short", timeZone: "UTC" }),
+                    };
+                return _tlFormats;
             }
             const tlIsoDay = (day) => new Date(TL_EPOCH + Math.floor(day) * 864e5).toISOString().slice(0, 10);
+            // what tlUpdateUi last wrote: a frame on the same day rewrites nothing
+            let tlUiDay = -1, tlUiLoc = "", tlUiCum = null, tlUiX = "";
             function tlUpdateUi() {
                 if (!tl) return;
                 // fewer lamps lit on another day: auto lights them up
                 if (timelineOn) autoSoon();
                 const d = clamp(Math.floor(tlDay), 0, tl.lastDay);
-                const o = tl.cumOpen[d + 1], c = tl.cumClose[d + 1];
                 const loc = numLocale();
-                document.getElementById("tl-date").textContent = tlDateText(d);
-                document.getElementById("tl-opened").textContent = o.toLocaleString(loc);
-                document.getElementById("tl-closed").textContent = c.toLocaleString(loc);
-                document.querySelector(".tl-close").hidden = c === 0;
-                document.getElementById("tl-net").textContent = (o >= c ? "+" : "−") + Math.abs(o - c).toLocaleString(loc);
                 const range = document.getElementById("tl-range");
+                // the counters and the date only change with the day (or the filters, or the language)
+                if (d !== tlUiDay || loc !== tlUiLoc || tl.cumOpen !== tlUiCum) {
+                    tlUiDay = d;
+                    tlUiLoc = loc;
+                    tlUiCum = tl.cumOpen;
+                    const o = tl.cumOpen[d + 1], c = tl.cumClose[d + 1];
+                    const date = tlDateText(d), num = tlFormats(loc).num;
+                    document.getElementById("tl-date").textContent = date;
+                    document.getElementById("tl-opened").textContent = num.format(o);
+                    document.getElementById("tl-closed").textContent = num.format(c);
+                    document.querySelector(".tl-close").hidden = c === 0;
+                    document.getElementById("tl-net").textContent = (o >= c ? "+" : "−") + num.format(Math.abs(o - c));
+                    range.setAttribute("aria-valuetext", date);
+                }
                 const f = clamp(tlT / tl.tMax, 0, 1);
                 const v = Math.round(f * TL_RANGE_STEPS);
                 if (+range.value !== v) range.value = v;
-                range.setAttribute("aria-valuetext", tlDateText(d));
                 const x = `calc(${(f * 100).toFixed(3)}% + ${(8 - 16 * f).toFixed(1)}px)`;
-                document.getElementById("tl-cursor").style.left = x;
-                // the lit bars stop at the cursor
-                document.getElementById("tl-hist-on").style.clipPath = `inset(0 calc(100% - ${x}) 0 0)`;
+                if (x !== tlUiX) {
+                    tlUiX = x;
+                    document.getElementById("tl-cursor").style.left = x;
+                    // the lit bars stop at the cursor
+                    document.getElementById("tl-hist-on").style.clipPath = `inset(0 calc(100% - ${x}) 0 0)`;
+                }
             }
             // bars on the screen-time axis, like the slider: one per year before 2018
             // (openings only), one per month after (openings up, closings down), all on
