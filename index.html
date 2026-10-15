@@ -5624,7 +5624,7 @@ self.onmessage=async({data})=>{
                 const fit = map.cameraForBounds(SWISS_BOUNDS, { padding: 12 });
                 return { ...TOUR_HOME, zoom: Math.min(TOUR_HOME.zoom, fit?.zoom ?? TOUR_HOME.zoom) };
             }
-            const TOUR_MS = 75000; // the scenes' length, for the progress bar
+            const TOUR_MS = 78000; // the scenes' length, for the progress bar
             let tourOn = false;
             let tourRun = 0; // bumped on every start and stop: a stale scene ends at its next await
             let tourSaved = null;
@@ -5807,7 +5807,7 @@ self.onmessage=async({data})=>{
             // timed on the wall clock whatever the pace; with clock, paced on the
             // timeline's own screen time, so 1883–2018 does not take most of it. Played
             // backwards the lamps just go out: no flashes
-            function tourPlay(run, d0, d1, ms, { clock = false, flash = true } = {}) {
+            function tourPlay(run, d0, d1, ms, { clock = false, flash = true, years = false } = {}) {
                 const play = document.getElementById("tl-play").firstElementChild;
                 if (tourSkipping()) {
                     tourAt(d1);
@@ -5838,7 +5838,7 @@ self.onmessage=async({data})=>{
                         if (dt > 0 && !still) tlRate = tlRate * 0.8 + (Math.max(0, tlT - lastT) / dt) * 0.2;
                         lastNow = now;
                         lastT = tlT;
-                        tourYear(tourDate(tlDay));
+                        tourYear(years ? String(new Date(TL_EPOCH + Math.floor(tlDay) * 864e5).getUTCFullYear()) : tourDate(tlDay));
                         redrawLayer();
                         tlUpdateUi();
                         if (f < 1) { requestAnimationFrame(frame); return; }
@@ -6129,11 +6129,15 @@ self.onmessage=async({data})=>{
                 tourFly({ center: [7.5886, 47.5596], zoom: 12.6, pitch: 55, bearing: -20 }, 2600);
                 await tourLanded(run);
                 tourCaption("Basel · 1945–2025", "Every company, lit in the order it opened.");
-                tourOrbit(run, { zoom: 12.9 }, 30, 5000);
+                tourOrbit(run, { zoom: 12.9 }, 45, 8000);
                 // paced by the calendar, not the timeline's clock: that one gives 2018–2025 most
                 // of the run, and Basel is mostly lit by 2018
-                await tourPlay(run, y1945, y2025, 5000, { flash: false });
+                await tourPlay(run, y1945, y2025, 5000, { flash: false, years: true });
+                // 2025 held 3 s, still turning, in the forms' colours
+                if (nightView) document.getElementById("btn-night-view").click();
+                await tourWait(run, 3000);
                 tourYear("");
+                if (!nightView) document.getElementById("btn-night-view").click();
                 tourCaption("cantography.ch", "Switzerland, one company at a time.");
                 await tourTimeline(run, false);
                 tourFly(home, 2500);
