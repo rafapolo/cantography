@@ -23,8 +23,8 @@ Times measured on 2026-10-15, in a 1030×1037 window, then shortened by 2.9 s.
 
 | # | time | place and camera | what happens | kicker · line |
 |---|---|---|---|---|
-| 0 | 0–4.9 s | all of Switzerland (zoom 7.15), from above; slowly closes in to zoom 7.6, pitch 30° | today's map, night view, all forms | **cantography** · *Every Swiss company, seen in a new light.* |
-| 1a | 4.9–6.7 s | flies to Geneva (zoom 12.4, pitch 60°, bearing −25°) | the search bar shows and the pointer clicks the night view button (the plane), which turns off | **night view** · *Night view off: each legal form in its own colour.* |
+| 0 | 0–3.9 s | all of Switzerland (zoom 7.15), from above; slowly closes in to zoom 7.6, pitch 30° | today's map, night view, all forms | **cantography** · *Every Swiss company, seen in a new light.* |
+| 1a | 3.9–6.7 s | flies to Geneva (zoom 12.4, pitch 60°, bearing −25°) | the search bar shows and the pointer clicks the night view button (the plane), which turns off | **night view** · *Night view off: each legal form in its own colour.* |
 | 1b | 6.7–10.5 s | Geneva | the legend shows; the pointer clicks **Deselect all**, then **Foundation** and **Association** | **legend** · *Pick legal forms in the legend.* |
 | 1c | 10.5–17.6 s | Geneva, slowly turning (bearing to 5°, zoom 12.8) | the timeline runs from Jan 2016 to today in 7 s; the big year shows at the top left | **Geneva · 2016–2026** · *N associations and foundations opened in ten years.* (N = 2,009) |
 | 2 | 17.6–29.4 s | flies to central Zurich (zoom 13.1, pitch 66°, bearing 40°), then one full 360° turn in 8 s, closing in to zoom 13.4 | pointer: **Deselect all**, **Corporation (AG)**, **LLC / SARL**; timeline from 2016 to today in 8 s | **Zurich · 2016–2026** · *N new AGs and GmbHs in ten years.* (N = 50,769) |

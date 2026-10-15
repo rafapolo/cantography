@@ -5970,14 +5970,16 @@ self.onmessage=async({data})=>{
                 const home = tourHome();
                 map.jumpTo(home);
                 tourCaption("cantography", "Every Swiss company, seen in a new light.");
-                tourDrift({ zoom: home.zoom + 0.45, pitch: 30, bearing: -8 }, 4500);
-                await tourWait(run, 4500);
+                tourDrift({ zoom: home.zoom + 0.45, pitch: 30, bearing: -8 }, 3500);
+                await tourWait(run, 3500);
 
                 // 1 · Geneva: associations and foundations, ten years, picked in the legend
                 tourCaption("night view", "Night view off: each legal form in its own colour.");
                 tourFly({ center: [6.143, 46.203], zoom: 12.4, pitch: 60, bearing: -25 }, 2600, { legend: true });
                 await tourTimeline(run, true, from);
                 await tourNight(run, false);
+                // time to read the colours before the legend takes over
+                await tourWait(run, 1000);
                 tourShow("legend");
                 tourCaption("legend", "Pick legal forms in the legend.");
                 await tourPickForms(run, GE);
