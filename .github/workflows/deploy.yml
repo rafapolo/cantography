@@ -3,6 +3,12 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+    # files that never reach dist/: a deploy renames the service worker's cache,
+    # so a docs-only push would make every returning visitor fetch the data again
+    paths-ignore:
+      - '**.md'
+      - 'scripts/*.py'
+      - 'scripts/*.sh'
   workflow_dispatch:
 
 permissions:

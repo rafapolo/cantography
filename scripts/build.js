@@ -3,6 +3,7 @@
 // Also bundles deck.gl into vendor/, and copies it, sw.js and all data/ assets to dist/
 
 import { minify } from "html-minifier-terser";
+import { minify as terser } from "terser";
 import { copyFileSync, cpSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync, statSync } from "fs";
 import { basename, join } from "path";
 
@@ -25,6 +26,11 @@ const deck = await Bun.build({
     define: { "process.env.NODE_ENV": '"production"' },
 });
 if (!deck.success) throw new AggregateError(deck.logs, "deck.gl bundle failed");
+// a second pass with terser: its compressor takes ~7 KB more off the gzipped bundle
+// than Bun's minifier alone, on the page's critical path, for ~3 s of build time
+const deckPath = join(ROOT, "vendor/deck.mjs");
+const deckMin = await terser(readFileSync(deckPath, "utf-8"), { module: true, compress: { passes: 2 }, mangle: true, format: { comments: false } });
+writeFileSync(deckPath, deckMin.code);
 
 // ── 1. Minify index.html ─────────────────────────────────────────────────────
 const src = readFileSync(join(ROOT, "index.html"), "utf-8");

@@ -10,6 +10,7 @@
         "@deck.gl/layers": "9.4.0",
         "@deck.gl/maplibre": "9.4.0",
         "html-minifier-terser": "^7.2.0",
+        "terser": "5.48.0",
       },
     },
   },
