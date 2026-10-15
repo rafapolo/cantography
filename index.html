@@ -146,6 +146,8 @@
                 background: var(--glass);
                 border: 1px solid var(--hair);
                 border-radius: 4px;
+                /* one line: left 50% would let it wrap at half the screen's width */
+                white-space: nowrap;
                 animation: progress-in 250ms ease-out;
                 transition: opacity 700ms ease;
             }
@@ -2161,6 +2163,11 @@
             #tour-cap.on {
                 opacity: 1;
                 transform: none;
+            }
+            /* the loading count, on one line however narrow the screen */
+            #tour-cap.loading #tour-line {
+                white-space: nowrap;
+                font-size: min(clamp(20px, 2.6vw, 38px), 5.4vw);
             }
             /* the timeline shows under the caption */
             body.tour-tl #tour-cap {
@@ -5632,6 +5639,7 @@ self.onmessage=async({data})=>{
                 const cap = document.getElementById("tour-cap");
                 cap.classList.remove("on");
                 setTimeout(() => {
+                    cap.classList.remove("loading");
                     document.getElementById("tour-kicker").textContent = kicker;
                     document.getElementById("tour-line").textContent = line;
                     if (kicker || line) cap.classList.add("on");
@@ -5826,7 +5834,7 @@ self.onmessage=async({data})=>{
                     return cantons * 0.5 + tlIn * 0.15 + search * 0.15 + tileFrac * 0.2;
                 };
                 document.getElementById("tour-kicker").textContent = "loading";
-                document.getElementById("tour-cap").classList.add("on");
+                document.getElementById("tour-cap").classList.add("on", "loading");
                 const show = () => {
                     document.getElementById("tour-line").textContent = `Getting the map ready… ${Math.round(frac() * 100)}%`;
                 };
