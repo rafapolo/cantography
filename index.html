@@ -2172,14 +2172,23 @@
             body.tour-tl #tour-cap {
                 bottom: calc(var(--lb) + 160px);
             }
+            /* on the panels' glass, so it reads over the brightest lamps */
             #tour-kicker {
-                display: block;
+                display: inline-block;
+                /* the letter spacing trails after the last letter: less padding on the right */
+                padding: 6px calc(12px - 0.18em) 6px 12px;
+                background: var(--glass);
+                border: 1px solid var(--hair);
+                border-radius: 4px;
                 font-family: var(--mono);
                 font-size: clamp(10px, 1vw, 13px);
                 letter-spacing: 0.18em;
                 text-transform: uppercase;
                 color: var(--ember);
                 margin-bottom: 10px;
+            }
+            #tour-kicker:empty {
+                display: none;
             }
             #tour-line {
                 display: block;
@@ -6068,18 +6077,20 @@ self.onmessage=async({data})=>{
                 tourOrbit(run, { zoom: 13.5 }, 360, 7000);
                 await tourPlay(run, from, to, 7000);
 
-                // 7 · the whole country from above, rewound to 2000, then all of it lit again
+                // 7 · the whole country from above in 2000, rewound to the first entry, then
+                // all of it lit again as it is today
                 tourCaption("", "");
                 tourYear("");
                 tourShow();
                 tourForms(null);
                 // the lamps going out read best in night view: turned on unseen
                 if (!nightView) document.getElementById("btn-night-view").click();
-                await tourTimeline(run, true, tl.lastDay);
+                const y2000 = tourDay("2000-01-01");
+                await tourTimeline(run, true, y2000);
                 tourFly(home, 2500);
                 await tourLanded(run);
-                tourCaption(`${new Date(TL_EPOCH + tl.lastDay * 864e5).getUTCFullYear()} → 2000`, "Navigate in time.");
-                await tourPlay(run, tl.lastDay, tourDay("2000-01-01"), 3000, { clock: true });
+                tourCaption(`2000 → ${new Date(TL_EPOCH + tl.firstDay * 864e5).getUTCFullYear()}`, "Navigate in time.");
+                await tourPlay(run, y2000, tl.firstDay, 3000, { clock: true });
                 await tourWait(run, 400);
                 tourYear("");
                 await tourTimeline(run, false);
