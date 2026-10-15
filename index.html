@@ -1294,34 +1294,45 @@
             .tl-close {
                 color: #ff6b4a;
             }
+            /* the histogram is the slider: drag or scroll on it; what is past is lit,
+               what is ahead is grey */
             .tl-track {
                 position: relative;
-                height: 64px;
+                height: 52px;
                 margin-top: 8px;
+                cursor: ew-resize;
+                /* a drag moves the date, not the page */
+                touch-action: none;
+                user-select: none;
+                -webkit-user-select: none;
+                -webkit-tap-highlight-color: transparent;
             }
-            #tl-hist {
+            #tl-hist,
+            #tl-hist-on {
                 position: absolute;
-                inset: 0 0 14px 0;
+                inset: 0;
                 width: 100%;
-                height: calc(100% - 14px);
+                height: 100%;
+                pointer-events: none;
             }
             #tl-cursor {
                 position: absolute;
                 top: 0;
-                bottom: 14px;
+                bottom: 0;
                 width: 1px;
                 background: #fff;
                 pointer-events: none;
             }
+            /* kept for the keyboard and screen readers, out of sight */
             #tl-range {
                 position: absolute;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                width: 100%;
+                width: 1px;
+                height: 1px;
                 margin: 0;
-                /* the progress takes the colour of the lamps */
-                accent-color: rgb(var(--spark-raw));
+                padding: 0;
+                overflow: hidden;
+                clip: rect(0, 0, 0, 0);
+                opacity: 0;
             }
             .tl-source {
                 margin-top: 4px;
@@ -1366,7 +1377,7 @@
                     color: #ff6b4a;
                 }
                 .tl-track {
-                    height: 52px;
+                    height: 48px;
                     margin-top: 6px;
                 }
                 /* the source line carries the pre-2018 caveat: it wraps rather than being cut */
@@ -1425,19 +1436,24 @@
                     width: 40px;
                     height: 40px;
                 }
-                /* a taller slider: the thumb is easy to catch with a finger */
+                /* a taller strip for a finger; the cursor gets a grip to show it moves */
                 .tl-track {
-                    height: 64px;
-                }
-                #tl-hist {
-                    inset: 0 0 26px 0;
-                    height: calc(100% - 26px);
+                    height: 56px;
                 }
                 #tl-cursor {
-                    bottom: 26px;
+                    width: 2px;
+                    margin-left: -0.5px;
                 }
-                #tl-range {
-                    height: 26px;
+                #tl-cursor::after {
+                    content: "";
+                    position: absolute;
+                    left: 50%;
+                    bottom: -3px;
+                    width: 10px;
+                    height: 10px;
+                    border-radius: 50%;
+                    background: #fff;
+                    transform: translateX(-50%);
                 }
             }
             /* the credits button clears the frame's rounded bottom corner */
@@ -2165,6 +2181,7 @@
             </div>
             <div class="tl-track">
                 <canvas id="tl-hist" aria-hidden="true"></canvas>
+                <canvas id="tl-hist-on" aria-hidden="true"></canvas>
                 <div id="tl-cursor"></div>
                 <input id="tl-range" type="range" min="0" max="1" step="1" value="0" aria-label="Date" data-i18n-aria="tlDate" />
             </div>
@@ -4151,20 +4168,29 @@ vec3 tl_state() {
                 const v = Math.round(f * TL_RANGE_STEPS);
                 if (+range.value !== v) range.value = v;
                 range.setAttribute("aria-valuetext", tlDateText(d));
-                document.getElementById("tl-cursor").style.left = `calc(${(f * 100).toFixed(3)}% + ${(8 - 16 * f).toFixed(1)}px)`;
+                const x = `calc(${(f * 100).toFixed(3)}% + ${(8 - 16 * f).toFixed(1)}px)`;
+                document.getElementById("tl-cursor").style.left = x;
+                // the lit bars stop at the cursor
+                document.getElementById("tl-hist-on").style.clipPath = `inset(0 calc(100% - ${x}) 0 0)`;
             }
             // bars on the screen-time axis, like the slider: one per year before 2018
             // (openings only), one per month after (openings up, closings down), all on
             // one scale of companies a month
+            // twice: in grey with the year ticks underneath, lit on top (cut at the cursor)
             function tlDrawHist() {
                 const cv = document.getElementById("tl-hist");
+                const cvOn = document.getElementById("tl-hist-on");
                 const w = cv.clientWidth, h = cv.clientHeight;
                 if (!tl || !w) return;
                 const dpr = window.devicePixelRatio || 1;
-                cv.width = w * dpr;
-                cv.height = h * dpr;
-                const g = cv.getContext("2d");
-                g.scale(dpr, dpr);
+                const ctx = (c) => {
+                    c.width = w * dpr;
+                    c.height = h * dpr;
+                    const g = c.getContext("2d");
+                    g.scale(dpr, dpr);
+                    return g;
+                };
+                const g = ctx(cv), gOn = ctx(cvOn);
                 const top = 11, mid = top + (h - top) * 0.6, up = mid - top, down = h - mid;
                 const X = (day) => 8 + (tlTimeAt(day) / tl.tMax) * (w - 16);
                 const css = getComputedStyle(document.documentElement);
@@ -4190,10 +4216,14 @@ vec3 tl_state() {
                 for (const [a, b, o, c] of bars) {
                     const x = X(a), bw = Math.max(1, X(Math.min(tl.lastDay, b)) - x - 0.5);
                     const bo = (o / max) * up, bc = Math.min(down, (c / max) * up);
-                    g.fillStyle = spark;
+                    g.fillStyle = "rgba(255,255,255,0.2)";
                     g.fillRect(x, mid - bo, bw, bo);
-                    g.fillStyle = "#ff6b4a";
+                    g.fillStyle = "rgba(255,255,255,0.12)";
                     g.fillRect(x, mid, bw, bc);
+                    gOn.fillStyle = spark;
+                    gOn.fillRect(x, mid - bo, bw, bo);
+                    gOn.fillStyle = "#ff6b4a";
+                    gOn.fillRect(x, mid, bw, bc);
                 }
                 // year ticks: a few landmarks before 2018, every year after; no overlapping labels
                 g.fillStyle = "rgba(255,255,255,0.45)";
@@ -4317,35 +4347,69 @@ vec3 tl_state() {
                 document.getElementById("btn-timeline").addEventListener("click", () => setTimeline(!timelineOn));
                 document.getElementById("tl-play").addEventListener("click", () => tlSetPlaying(!tlPlaying));
                 const range = document.getElementById("tl-range");
-                range.addEventListener("input", () => {
-                    if (!tl) return;
+                const track = range.parentElement;
+                const tlGo = (day) => {
                     tlSetPlaying(false);
-                    // from 2018 the slider lands on the 1st of a month
-                    tlDay = clamp(tlSnapDay(tlDayAt((+range.value / TL_RANGE_STEPS) * tl.tMax)), tl.firstDay, tl.lastDay);
+                    tlDay = clamp(day, tl.firstDay, tl.lastDay);
                     tlT = tlTimeAt(tlDay);
                     tlNudge();
                     redrawLayer();
                     tlUpdateUi();
-                });
-                range.addEventListener("change", updateUrl);
-                // released: the flashes go at once
-                range.addEventListener("change", tlSettle);
-                range.addEventListener("pointerup", tlSettle);
+                };
+                // from 2018 the slider lands on the 1st of a month
+                const tlSeek = (f) => tlGo(tlSnapDay(tlDayAt(f * tl.tMax)));
+                // a year before 2018 and a month after, however compressed the strip is there
+                const tlStep = (dir) => tlGo(tlStepDay(Math.floor(tlDay), dir));
+                const tlRelease = () => { tlSettle(); updateUrl(); };
+                range.addEventListener("input", () => { if (tl) tlSeek(+range.value / TL_RANGE_STEPS); });
+                range.addEventListener("change", tlRelease);
                 range.addEventListener("keyup", tlSettle);
-                // arrows move a year before 2018 and a month after, however compressed the slider is there
                 range.addEventListener("keydown", (e) => {
                     const dir = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[e.key];
                     if (!dir || !tl) return;
                     e.preventDefault();
-                    tlSetPlaying(false);
-                    tlDay = clamp(tlStepDay(Math.floor(tlDay), dir), tl.firstDay, tl.lastDay);
-                    tlT = tlTimeAt(tlDay);
-                    tlNudge();
-                    redrawLayer();
-                    tlUpdateUi();
+                    tlStep(dir);
                     updateUrl();
                 });
-                window.addEventListener("resize", () => { if (timelineOn) tlDrawHist(); });
+                // drag on the histogram: the bars sit 8px in from each side
+                let dragId = null;
+                const seekAt = (e) => {
+                    const r = track.getBoundingClientRect();
+                    tlSeek(clamp((e.clientX - r.left - 8) / Math.max(1, r.width - 16), 0, 1));
+                };
+                track.addEventListener("pointerdown", (e) => {
+                    if (!tl || (e.pointerType === "mouse" && e.button !== 0)) return;
+                    e.preventDefault();
+                    dragId = e.pointerId;
+                    track.setPointerCapture(dragId);
+                    range.focus({ preventScroll: true });
+                    seekAt(e);
+                });
+                track.addEventListener("pointermove", (e) => { if (e.pointerId === dragId) seekAt(e); });
+                const endDrag = (e) => {
+                    if (e.pointerId !== dragId) return;
+                    dragId = null;
+                    tlRelease();
+                };
+                track.addEventListener("pointerup", endDrag);
+                track.addEventListener("pointercancel", endDrag);
+                // wheel or two-finger swipe over it steps like the arrows
+                let wheelAcc = 0, wheelTimer = 0;
+                track.addEventListener("wheel", (e) => {
+                    if (!tl) return;
+                    e.preventDefault();
+                    const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+                    wheelAcc += e.deltaMode === 1 ? d * 16 : d;
+                    while (Math.abs(wheelAcc) >= 40) {
+                        const dir = Math.sign(wheelAcc);
+                        wheelAcc -= dir * 40;
+                        tlStep(dir);
+                    }
+                    clearTimeout(wheelTimer);
+                    wheelTimer = setTimeout(() => { wheelAcc = 0; tlRelease(); }, 150);
+                }, { passive: false });
+                // the strip changes size with the window and the layout (phone, rotation)
+                new ResizeObserver(() => { if (timelineOn) tlDrawHist(); }).observe(track);
                 // publish the bar's footprint so the bottom controls can clear it on phones
                 new ResizeObserver(([entry]) => {
                     const r = entry.target.getBoundingClientRect();
