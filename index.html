@@ -3111,6 +3111,7 @@ in float night_seed;
             const SPARSE_FROM_PX = 15;
             const SPARSE_GROW = 0.06;
             const SPARSE_SIZE_MAX = 3;
+            const SPARSE_SIZE_FAR = 1;
             const SPARSE_LIGHT = 1.5;
             const CLOSE_FROM = 12;
             const CLOSE_TO = 16.5;
@@ -3184,9 +3185,11 @@ in float night_seed;
                 const sizeMin = 0.35 + (CLOSE_SIZE_MIN - 0.35) * near;
                 const sizeMax = AUTO_SIZE_MAX + (CLOSE_SIZE_MAX - AUTO_SIZE_MAX) * near;
                 // a sparse view (few legal forms or cantons on) grows faster and may
-                // outgrow the zoom's cap, so its few lamps stay easy to see
+                // outgrow the zoom's cap, so its few lamps stay easy to see: up to
+                // about size 1 from afar, SPARSE_SIZE_MAX only close in
                 const sparse = Math.max(0, s.gap - SPARSE_FROM_PX);
-                const size = clamp(0.3 + 0.025 * s.gap + SPARSE_GROW * sparse, sizeMin, sparse ? Math.max(sizeMax, SPARSE_SIZE_MAX) : sizeMax);
+                const sparseMax = SPARSE_SIZE_FAR + (SPARSE_SIZE_MAX - SPARSE_SIZE_FAR) * near;
+                const size = clamp(0.3 + 0.025 * s.gap + SPARSE_GROW * sparse, sizeMin, sparse ? Math.max(sizeMax, sparseMax) : sizeMax);
                 // what one lamp adds to its cell: a dot under a pixel wide covers
                 // part of it, a wide one spills onto the cells around
                 const R = NIGHT_RADIUS * size, area = Math.PI * R * R;
