@@ -3450,7 +3450,9 @@ in float night_seed;
             // carry, the legal forms' colors are bright enough on the slate
             const GROUND = {
                 plane: { earth: "#0a0c11", water: "#05070b" },
-                colors: { earth: "#10131a", water: "#0a0e17" },
+                // with the forms' colours the light is already up: a lighter slate, and
+                // lakes in a clear blue as if the sun were on them
+                colors: { earth: "#1a202b", water: "#1c3a5c" },
             };
             const ground = () => (nightView ? GROUND.plane : GROUND.colors);
             const WATER_PAINT = { water: "fill-color", waterway: "line-color" };
@@ -5610,8 +5612,8 @@ self.onmessage=async({data})=>{
 
             // ── Tour: a ~1 min camera ride for the video ────────────────────────────
             // Geneva's associations and foundations, Zurich's AGs and GmbHs, Bern's sole
-            // proprietors, Vaud's closings around the pandemic, a search, Lugano's foreign
-            // branches, and Basel lighting up from 1945, then back to the whole country.
+            // proprietors, Vaud's closings around the pandemic, a search, and Basel
+            // lighting up from 1945, then back to the whole country.
             // On a wide screen a drawn pointer clicks the real legend, timeline and search
             // on the way, so the film also shows how to use them.
             // Each scene's numbers are counted from the timeline itself.
@@ -5624,7 +5626,7 @@ self.onmessage=async({data})=>{
                 const fit = map.cameraForBounds(SWISS_BOUNDS, { padding: 12 });
                 return { ...TOUR_HOME, zoom: Math.min(TOUR_HOME.zoom, fit?.zoom ?? TOUR_HOME.zoom) };
             }
-            const TOUR_MS = 80000; // the scenes' length, for the progress bar
+            const TOUR_MS = 70000; // the scenes' length, for the progress bar
             let tourOn = false;
             let tourRun = 0; // bumped on every start and stop: a stale scene ends at its next await
             let tourSaved = null;
@@ -5892,7 +5894,6 @@ self.onmessage=async({data})=>{
                 [[8.537, 47.372], [13, 12, 11]],
                 [[7.447, 46.948], [13, 12, 11]],
                 [[6.632, 46.522], [11, 10, 9]],
-                [[8.951, 46.004], [13, 12, 11]],
                 [[7.589, 47.56], [13, 12, 11]],
             ];
             function tourTileUrls() {
@@ -6006,7 +6007,6 @@ self.onmessage=async({data})=>{
             async function tourScenes(run) {
                 const from = tourDay("2016-01-01"), to = tl.lastDay;
                 const GE = ["Stiftung", "Verein"], ZH = ["Aktiengesellschaft", "GmbH / SARL"], BE = ["Einzelunternehmen"];
-                const TI = ["Ausländische Niederlassung"];
 
                 // 0 · the country tonight
                 await tourTimeline(run, false);
@@ -6095,29 +6095,7 @@ self.onmessage=async({data})=>{
                 await tourSearch(run, "Nestlé Suisse", 1400);
                 await tourWait(run, 3000);
 
-                // 6 · Lugano: foreign companies' branches, flown in low over the lake toward the town
-                hideTooltip();
-                tourCaption("", "");
-                tourShow();
-                tourFly({ center: [8.958, 45.986], zoom: 13, pitch: 72, bearing: -12 }, 2600, { legend: true });
-                // the clicks outlast the flight: the glide starts as it lands, not once they
-                // are done, and lasts until the timeline's end
-                tourLanding.then(() => {
-                    if (run === tourRun) tourDrift({ center: [8.951, 46.004], zoom: 13.9, pitch: 64, bearing: -4 }, 6600);
-                });
-                await tourTimeline(run, true, from);
-                await tourNight(run, false);
-                tourShow("legend");
-                await tourPickForms(run, TI);
-                await tourWait(run, 300);
-                tourCaption(
-                    "Lugano · 2016–2026",
-                    `${tourNum(tourCount("TI", TI, from, to))} foreign companies opened a branch in Ticino, ${tourNum(tourCount("TI", TI, from, to, "c16"))} were closed.`,
-                );
-                await tourLanded(run);
-                await tourPlay(run, from, to, 5000);
-
-                // 7 · Basel, tilted and slowly turning, lighting up from 1945 to 2025 in night
+                // 6 · Basel, tilted and slowly turning, lighting up from 1945 to 2025 in night
                 // view, no flashes: the lamps just come on. Then back to the whole country
                 tourCaption("", "");
                 tourYear("");

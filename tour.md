@@ -1,6 +1,6 @@
 # Tour: the script
 
-The tour is a ~80 s camera ride made for the Swiss Viz Awards video. It also shows how to use the site: a drawn pointer clicks the real controls. To play it, use the **▶ tour** button among the chips at the bottom right, or open `?tour=1`, which starts on its own once the map has loaded; add `&t=<seconds>` (e.g. `?tour=1&t=64` for Basel) to start about there, the scenes before it run through at once. **Esc** or **✕ esc** stop the tour and put the filters, the timeline and night view back the way they were.
+The tour is a ~70 s camera ride made for the Swiss Viz Awards video. It also shows how to use the site: a drawn pointer clicks the real controls. To play it, use the **▶ tour** button among the chips at the bottom right, or open `?tour=1`, which starts on its own once the map has loaded; add `&t=<seconds>` (e.g. `?tour=1&t=54` for Basel) to start about there, the scenes before it run through at once. **Esc** or **✕ esc** stop the tour and put the filters, the timeline and night view back the way they were.
 
 This file describes what happens in each scene. To change something, edit it here and ask for the change in the code: the scenes live in `tourScenes()`, in `index.html`.
 
@@ -9,7 +9,7 @@ This file describes what happens in each scene. To change something, edit it her
 - **Frame.** Black cinema bars at 2.39:1 (at most 16% of the screen each) and a thin progress line on the bottom bar's edge. The whole interface is hidden, except the control the scene is teaching.
 - **Text.** In English, whatever the page's language. The caption has two parts: a small label on top (the *kicker*, usually place · years) and the line. The kicker sits on the panels' dark glass, so it reads over the brightest lamps.
 - **Numbers.** Counted in the browser from the timeline; none is hard-coded.
-- **Colours.** The legend only makes sense with night view **off**: each legal form shows in its own colour. Night view comes back in Vaud, where the red of the closures is what matters, stays for the search, goes again in Lugano and is back for the rewind at the end.
+- **Colours.** The legend only makes sense with night view **off**: each legal form shows in its own colour. Night view comes back in Vaud, where the red of the closures is what matters, stays for the search and in Basel, which ends in the forms' colours.
 - **Pointer.** Only on wide screens (above 980 px). On phones the tour applies the filters without showing the clicks, but waits the time they would take: the camera lands before it turns, and the tour lasts the same.
 - **Phones.** The timeline panel stays hidden; the big date at the top left keeps the time. The opening and the end show the whole of Switzerland, at whatever zoom fits the width. The search card opens just under the search, clear of the caption.
 - **Short screens.** The legend stays inside the frame and scrolls to the item before the click; while it shows, the caption keeps to the map's side of it.
@@ -32,15 +32,13 @@ Times measured on 2026-10-15, in a 1030×1037 window, then shortened by 2.9 s.
 | 3b | 33.4–39.5 s | Bern, tilting to 55° | the pointer goes to the timeline's ▶, which turns to ❚❚; from 2016 to today in 6 s | **Bern · 2016–2026** · *N people started a business of their own.* (N = 15,231) |
 | 4 | 39.5–48.1 s | flies to Lausanne (zoom 11.6, pitch 50°, bearing −30°), turns to −50° | all forms; the pointer turns night view back on; timeline from Jan 2019 to Dec 2021 in 6 s, closures in red | **Vaud · 2019–2021** · *In 2020 closures fell N%: the year of COVID loans and a pause on debt collection.* (N = 25; had closures gone up, the line would say *rose*) |
 | 5 | 48.1–54.2 s | Vevey | the timeline goes and today's map comes back; the pointer clicks the search, "Nestlé Suisse" is typed one letter at a time (1.4 s), the first hit opens and its card stays pinned | **search** · *Find any of N companies on the map.* (N = 795,271) |
-| 6 | 54.2–63.6 s | flies low over Lake Lugano, south of the town (zoom 13, pitch 72°, bearing −12°), then glides in over the water to the centre (zoom 13.9, pitch 64°) | the card closes and the timeline comes back; the pointer turns night view off, then **Deselect all**, **Foreign Branch**; timeline from 2016 to today in 5 s | **Lugano · 2016–2026** · *N foreign companies opened a branch in Ticino, M were closed.* (N = 271, M = 386) |
-| 7a | 63.6–76.2 s | flies to Basel (zoom 12.6, pitch 55°, bearing −20°), then turns slowly 50° over 10 s, closing in to zoom 12.9 | all forms; night view turns on unseen; the timeline runs from 1945 to Dec 2025 in 5 s, the lamps coming on in the order the companies opened (no flashes), the big date showing years only; then night view goes off unseen and 2025 holds 5 s in the forms' colours, the camera still turning | **Basel · 1945–2025** · *Eighty years of companies, transforming a city.* |
-| 7b | 76.2–80.2 s | flies back to all of Switzerland (2.5 s) | the timeline goes; night view comes back and the whole country is lit | **cantography.ch** · *Switzerland, one company at a time.* |
+| 6a | 54.2–66.8 s | flies to Basel (zoom 12.6, pitch 55°, bearing −20°), then turns slowly 50° over 10 s, closing in to zoom 12.9 | all forms; night view stays on; the timeline runs from 1945 to Dec 2025 in 5 s, the lamps coming on in the order the companies opened (no flashes), the big date showing years only; then night view goes off unseen and 2025 holds 5 s in the forms' colours, the camera still turning | **Basel · 1945–2025** · *Eighty years of companies, transforming a city.* |
+| 6b | 66.8–70.8 s | flies back to all of Switzerland (2.5 s) | the timeline goes; night view comes back and the whole country is lit | **cantography.ch** · *Switzerland, one company at a time.* |
 
 ## Where the numbers come from
 
-- **Openings (Geneva, Zurich, Bern, Lugano):** companies of that canton and those legal forms (for Lugano, foreign branches in Ticino) whose opening date falls between 1 Jan 2016 and the timeline's last day. Before 2018 only companies that exist today or were deleted since are counted: those are the cantonal register's entry dates.
+- **Openings (Geneva, Zurich, Bern):** companies of that canton and those legal forms whose opening date falls between 1 Jan 2016 and the timeline's last day. Before 2018 only companies that exist today or were deleted since are counted: those are the cantonal register's entry dates.
 - **Closures in Vaud:** deletions published in the SHAB in 2020, compared with 2019. Across the whole country they fell 8%, by the SHAB data (2019: 31,261; 2020: 28,680). The COVID loans and the suspension of debt collection (Rechtsstillstand, 19 March to 19 April 2020) are the line's context, not a proven cause.
-- **Closures in Ticino:** foreign branches of Ticino deleted between 1 Jan 2016 and the timeline's last day; deletions come from the SHAB, so in practice from 2018.
 - **Search total:** the sum of today's companies in the 26 cantons.
 
 ## Ideas left out
