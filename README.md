@@ -44,7 +44,7 @@ Choose which cantons (regions) to show on the map. By default Bern is loaded. Cl
 ### Right panel — Legend
 The legend shows the 12 legal forms and their colours. Click any item to hide or show that company type, on the map and in the timeline. The number in brackets shows how many companies of that type are in view; it spins while a canton is still loading.
 
-Switch the whole interface between **DE**, **FR**, **IT** and **EN** using the buttons in the top-right of the legend. The first visit follows your browser's language, and your choice is remembered.
+The interface is in English; switch it to German with **DE** in the top-right of the legend (and back with **EN**). Your choice is remembered.
 
 ### Night view
 The **moon** button next to the search turns every company into a warm light, like a satellite photo of Switzerland at night: dense business districts glow, single companies twinkle. The exposure adapts to what is in view, so a village is as readable as Zürich. With few legal forms or cantons switched on, the lights grow bigger and brighter so the few left stay easy to see.
