@@ -5706,6 +5706,82 @@ self.onmessage=async({data})=>{
                 }));
             }
 
+            // the basemap tiles of each landing, at the zooms the camera passes through
+            // (a pitched view pulls lower zooms in toward the horizon)
+            const TOUR_TILES = [
+                [[6.143, 46.203], [12, 11, 10]],
+                [[8.537, 47.372], [13, 12, 11]],
+                [[7.447, 46.948], [13, 12, 11]],
+                [[6.632, 46.522], [11, 10, 9]],
+            ];
+            function tourTileUrls() {
+                const tmpl = map.getSource("openmaptiles")?.tiles?.[0];
+                if (!tmpl) return [];
+                const urls = new Set();
+                for (const [[lng, lat], zooms] of TOUR_TILES) {
+                    zooms.forEach((z, k) => {
+                        const n = 2 ** z, r = k ? 1 : 2;
+                        const x = Math.floor(((lng + 180) / 360) * n);
+                        const rad = (lat * Math.PI) / 180;
+                        const y = Math.floor(((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * n);
+                        for (let dx = -r; dx <= r; dx++)
+                            for (let dy = -r; dy <= r; dy++)
+                                urls.add(tmpl.replace("{z}", z).replace("{x}", x + dx).replace("{y}", y + dy));
+                    });
+                }
+                return [...urls];
+            }
+
+            // everything in before the first frame: the cantons, the timeline, the search
+            // index and the landings' tiles, counted in the caption
+            async function tourLoad(run) {
+                const until = (ok, ms) => (async () => {
+                    for (let t = 0; !ok() && t < ms; t += 200) await tourWait(run, 200);
+                })();
+                let tlIn = 0, tilesIn = 0, tiles = [];
+                const frac = () => {
+                    const cantons = Object.keys(cantonData).length / CANTONS.length;
+                    const search = searchReady || !_searchWorker ? 1 : 0;
+                    const tileFrac = tiles.length ? tilesIn / tiles.length : 0;
+                    return cantons * 0.5 + tlIn * 0.15 + search * 0.15 + tileFrac * 0.2;
+                };
+                document.getElementById("tour-kicker").textContent = "loading";
+                document.getElementById("tour-cap").classList.add("on");
+                const show = () => {
+                    document.getElementById("tour-line").textContent = `Getting the map ready… ${Math.round(frac() * 100)}%`;
+                };
+                show();
+                const ticker = setInterval(show, 200);
+                try {
+                    const timeline = (tlLoading ??= loadTimeline()).then((d) => { tl = d; tlIn = 1; });
+                    // the map's style has to be in to know the tiles' address
+                    await until(() => map.getSource("openmaptiles")?.tiles, 30000);
+                    tiles = tourTileUrls();
+                    // a few at a time, so the cantons' own downloads are not starved
+                    const queue = [...tiles];
+                    const fetchTiles = Promise.all(Array.from({ length: 6 }, async () => {
+                        while (queue.length && run === tourRun) {
+                            await fetch(queue.pop()).then((r) => r.arrayBuffer()).catch(() => {});
+                            tilesIn++;
+                        }
+                    }));
+                    await until(() => Object.keys(cantonData).length >= CANTONS.length, 120000);
+                    await timeline;
+                    tourCheck(run);
+                    // a search index that fails or hangs does not hold the tour: the
+                    // search falls back to the cantons already in
+                    await until(() => searchReady || !_searchWorker, 30000);
+                    await fetchTiles;
+                    tourCheck(run);
+                    await until(() => document.getElementById("map").classList.contains("ready"), 10000);
+                    show();
+                    refreshLayer();
+                    await tourWait(run, 400);
+                } finally {
+                    clearInterval(ticker);
+                }
+            }
+
             async function startTour() {
                 if (tourOn || !map) return;
                 const run = ++tourRun;
@@ -5728,10 +5804,7 @@ self.onmessage=async({data})=>{
                 requestAnimationFrame(() => ui.classList.add("on"));
                 document.getElementById("tour-stop").focus({ preventScroll: true });
                 try {
-                    // everything in before the first frame: the cantons and the timeline
-                    while (Object.keys(cantonData).length < CANTONS.length) await tourWait(run, 200);
-                    tl = await (tlLoading ??= loadTimeline());
-                    tourCheck(run);
+                    await tourLoad(run);
                     if (!nightView) document.getElementById("btn-night-view").click();
                     document.getElementById("legend").classList.remove("collapsed");
                     tourT0 = performance.now();
