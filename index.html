@@ -6076,7 +6076,7 @@ self.onmessage=async({data})=>{
                 await tourTimeline(run, true, tl.lastDay);
                 tourFly(home, 2500);
                 await tourLanded(run);
-                tourCaption(`${new Date(TL_EPOCH + tl.lastDay * 864e5).getUTCFullYear()} → 2000`, "Rewind into the past.");
+                tourCaption(`${new Date(TL_EPOCH + tl.lastDay * 864e5).getUTCFullYear()} → 2000`, "Navigate in time.");
                 await tourPlay(run, tl.lastDay, tourDay("2000-01-01"), 3000, { clock: true });
                 await tourWait(run, 400);
                 tourYear("");
