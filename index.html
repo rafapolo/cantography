@@ -580,6 +580,10 @@
                 color: var(--lamp);
                 font-variant-numeric: tabular-nums;
             }
+            /* the build strips the space between "zoom" and its number */
+            .light-foot output {
+                margin-left: 0.6em;
+            }
             /* a hairline track lit in ember up to a small lit thumb; --fill (set from
                the script) is the lit part for WebKit, Gecko has ::-moz-range-progress.
                The pseudo-elements stay in twin rules: a browser drops a whole rule
@@ -594,6 +598,17 @@
                 cursor: pointer;
                 -webkit-appearance: none;
                 appearance: none;
+            }
+            /* no box around the slider: the keyboard's focus lights the thumb instead */
+            .knob input[type="range"]:focus,
+            .knob input[type="range"]:focus-visible {
+                outline: none;
+            }
+            .knob input[type="range"]:focus-visible::-webkit-slider-thumb {
+                box-shadow: 0 0 0 3px rgba(var(--lamp-raw), 0.35), 0 0 14px rgba(var(--ember-raw), 0.9);
+            }
+            .knob input[type="range"]:focus-visible::-moz-range-thumb {
+                box-shadow: 0 0 0 3px rgba(var(--lamp-raw), 0.35), 0 0 14px rgba(var(--ember-raw), 0.9);
             }
             .knob input[type="range"]:disabled {
                 opacity: 0.4;
@@ -2453,7 +2468,7 @@
                                 <path class="shackle" d="M4 5.5V3.6a2 2 0 0 1 4 0v1.9" />
                             </svg>
                         </button>
-                        <span>zoom <output id="zoomval">–</output></span>
+                        <span>zoom<output id="zoomval">–</output></span>
                     </div>
                 </div>
             </div></div>
