@@ -2275,6 +2275,13 @@
                     padding-right: calc(8vw + 305px);
                 }
             }
+            /* wide enough, it stays in the middle of the screen, kept off the legend
+               the same on both sides */
+            @media (min-width: 1400px) {
+                body.touring.tour-legend #tour-cap {
+                    padding-left: calc(8vw + 305px);
+                }
+            }
             body.touring #legend,
             body.touring #timeline,
             body.touring #search-bar {
@@ -5589,8 +5596,8 @@ self.onmessage=async({data})=>{
 
             // ── Tour: a ~1 min camera ride for the video ────────────────────────────
             // Geneva's associations and foundations, Zurich's AGs and GmbHs, Bern's sole
-            // proprietors, Vaud's closings around the pandemic, Lugano's foreign branches,
-            // a search, and the whole country rewound to 2000, then lit again as it is
+            // proprietors, Vaud's closings around the pandemic, a search, Lugano's foreign
+            // branches, and the whole country rewound to 2000, then lit again as it is
             // today. On a wide screen a drawn pointer clicks the real legend, timeline and
             // search on the way, so the film also shows how to use them.
             // Each scene's numbers are counted from the timeline itself.
@@ -6030,25 +6037,10 @@ self.onmessage=async({data})=>{
                 tourDrift({ bearing: -50, zoom: 11.9 }, 6000);
                 await tourPlay(run, y19[0], tourDay("2021-12-31"), 6000);
 
-                // 5 · Lugano: foreign companies' branches by the lake, one turn round
-                tourCaption("", "");
-                tourYear("");
-                tourFly({ center: [8.951, 46.004], zoom: 13.2, pitch: 60, bearing: 20 }, 2600, { legend: true });
-                tourAt(from);
-                await tourNight(run, false, "tl");
-                tourShow("legend");
-                await tourPickForms(run, TI);
-                await tourWait(run, 300);
-                tourCaption("Lugano · 2016–2026", `${tourNum(tourCount("TI", TI, from, to))} foreign companies opened a branch in Ticino.`);
-                await tourLanded(run);
-                tourOrbit(run, { zoom: 13.5 }, 360, 8000);
-                await tourPlay(run, from, to, 8000);
-
-                // 6 · a search: one company among all of them
+                // 5 · a search: one company among all of them
                 tourYear("");
                 tourCaption("", "");
                 tourShow();
-                tourForms(null);
                 await tourTimeline(run, false);
                 const total = Object.values(cantonTotals).reduce((a, b) => a + b, 0);
                 tourShow("search");
@@ -6056,10 +6048,29 @@ self.onmessage=async({data})=>{
                 await tourSearch(run, "Nestlé Suisse", 1400);
                 await tourWait(run, 3600);
 
-                // 7 · the whole country from above, rewound to 2000, then all of it lit again
+                // 6 · Lugano: foreign companies' branches by the lake, one turn round
                 hideTooltip();
                 tourCaption("", "");
                 tourShow();
+                tourFly({ center: [8.951, 46.004], zoom: 13.2, pitch: 60, bearing: 20 }, 2600, { legend: true });
+                await tourTimeline(run, true, from);
+                await tourNight(run, false);
+                tourShow("legend");
+                await tourPickForms(run, TI);
+                await tourWait(run, 300);
+                tourCaption(
+                    "Lugano · 2016–2026",
+                    `${tourNum(tourCount("TI", TI, from, to))} foreign companies opened a branch in Ticino, ${tourNum(tourCount("TI", TI, from, to, "c16"))} closed one.`,
+                );
+                await tourLanded(run);
+                tourOrbit(run, { zoom: 13.5 }, 360, 8000);
+                await tourPlay(run, from, to, 8000);
+
+                // 7 · the whole country from above, rewound to 2000, then all of it lit again
+                tourCaption("", "");
+                tourYear("");
+                tourShow();
+                tourForms(null);
                 // the lamps going out read best in night view: turned on unseen
                 if (!nightView) document.getElementById("btn-night-view").click();
                 await tourTimeline(run, true, tl.lastDay);
