@@ -388,6 +388,12 @@
             /* Night: the frame and the window corners go to the same black as the map */
             body.night {
                 --corner: #10131a;
+                background: #10131a;
+            }
+            /* plane view: a darker ground, so the faintest embers still carry */
+            body.night.plane {
+                --corner: #0a0c11;
+                background: #0a0c11;
             }
 
             /* Left column: the masthead with the canton panel under it */
@@ -2173,7 +2179,7 @@
             }
         </style>
     </head>
-    <body class="night">
+    <body class="night plane">
 
         <div
             id="map"
@@ -3331,7 +3337,7 @@ in float night_seed;
                     map.setLayoutProperty(id, "visibility", names ? "visible" : "none");
                     if (!names) continue;
                     map.setPaintProperty(id, "text-color", id.startsWith("place_city") ? "#cfc5b4" : "#8f8473");
-                    map.setPaintProperty(id, "text-halo-color", NIGHT_EARTH);
+                    map.setPaintProperty(id, "text-halo-color", ground().earth);
                     map.setPaintProperty(id, "text-halo-width", 1.2);
                 }
             }
@@ -3401,13 +3407,28 @@ in float night_seed;
             // neutral on black, with lakes and rivers kept as a faint navy so the
             // land still reads; every other style layer is hidden. The day look is
             // saved and put back on the way out.
-            // the ground from a plane at night: not black, a dark slate, the lakes darker
-            // still; lamps add on top of it
-            const NIGHT_EARTH = "#10131a";
-            const NIGHT_WATER = "#0a0e17";
+            // the ground at night: not black, a dark slate, the lakes darker still;
+            // lamps add on top of it. Plane view goes darker so the dim embers
+            // carry, the legal forms' colors are bright enough on the slate
+            const GROUND = {
+                plane: { earth: "#0a0c11", water: "#05070b" },
+                colors: { earth: "#10131a", water: "#0a0e17" },
+            };
+            const ground = () => (nightView ? GROUND.plane : GROUND.colors);
             const WATER_PAINT = { water: "fill-color", waterway: "line-color" };
             let dayStyle = null;
             let styleReady = false;
+            // the ground of the current view, on the map and the frame around it
+            function paintGround() {
+                document.body.classList.toggle("plane", nightView);
+                if (!styleReady || dayStyle === null) return;
+                const g = ground();
+                map.setPaintProperty("background", "background-color", g.earth);
+                for (const id of Object.keys(WATER_PAINT)) {
+                    if (map.getLayer(id)) map.setPaintProperty(id, WATER_PAINT[id], g.water);
+                }
+                showNames();
+            }
             function setNightBasemap(on) {
                 // not isStyleLoaded(): that stays false while any tile loads, and a
                 // toggle mid-zoom would leave the day map black. styleReady waits
@@ -3426,10 +3447,10 @@ in float night_seed;
                                 .map(([id, prop]) => [id, map.getPaintProperty(id, prop)]),
                         ),
                     };
-                    map.setPaintProperty("background", "background-color", NIGHT_EARTH);
+                    map.setPaintProperty("background", "background-color", ground().earth);
                     for (const l of layers) {
                         if (l.type === "background") continue;
-                        if (WATER_PAINT[l.id]) map.setPaintProperty(l.id, WATER_PAINT[l.id], NIGHT_WATER);
+                        if (WATER_PAINT[l.id]) map.setPaintProperty(l.id, WATER_PAINT[l.id], ground().water);
                         else map.setLayoutProperty(l.id, "visibility", "none");
                     }
                 } else if (dayStyle) {
@@ -4979,6 +5000,7 @@ vec3 tl_state() {
                         const btn = document.getElementById("btn-night-view");
                         btn.classList.toggle("active", nightView);
                         btn.setAttribute("aria-pressed", nightView ? "true" : "false");
+                        paintGround();
                         refreshLayer();
                     });
             }
