@@ -73,6 +73,10 @@
                 --mono: "Martian Mono", ui-monospace, monospace;
                 --halo: 0 0 6px rgba(var(--spark-raw), 0.8), 0 0 22px rgba(var(--ember-raw), 0.9), 0 0 48px rgba(var(--ember-raw), 0.7);
                 --aura: 0 0 8px rgba(var(--ember-raw), 0.9), 0 0 22px rgba(var(--ember-raw), 0.65), 0 0 44px rgba(var(--ember-raw), 0.4);
+                --display: "Bricolage Grotesque", "Inter", sans-serif;
+                --ease: cubic-bezier(0.4, 0, 0.2, 1);
+                /* the tour's cinema bars: the frame cut to 2.39:1, at most 16% of the screen each */
+                --lb: clamp(0px, calc((100vh - 100vw / 2.39) / 2), 16vh);
             }
             * {
                 margin: 0;
@@ -223,21 +227,13 @@
             #map canvas {
                 outline: none;
             }
-            /* Visible focus styles for keyboard navigation */
-            :focus-visible {
-                outline: 2px solid rgba(108, 142, 255, 0.8);
-                outline-offset: 2px;
-            }
+            /* Visible focus styles for keyboard navigation (the ring is in the lumen block) */
             button:focus-visible,
             .lang-btn:focus-visible {
-                outline: 2px solid rgba(108, 142, 255, 0.8);
-                outline-offset: 2px;
                 border-radius: 3px;
             }
             .legend-item:focus-visible,
             .canton-item:focus-visible {
-                outline: 2px solid rgba(108, 142, 255, 0.8);
-                outline-offset: 1px;
                 background: rgba(255, 255, 255, 0.06);
             }
             /* Tooltip */
@@ -245,9 +241,6 @@
                 z-index: 13;
                 position: absolute;
                 padding: 14px 16px;
-                background: var(--bg);
-                border: 1px solid var(--border);
-                border-radius: 6px;
                 font-size: 14px;
                 pointer-events: none;
                 display: none;
@@ -255,7 +248,6 @@
                 box-shadow: 0 8px 32px var(--shadow-dark);
             }
             #tooltip h3 {
-                color: #fff;
                 margin-bottom: 6px;
                 font-size: 14px;
                 font-weight: 500;
@@ -263,11 +255,7 @@
             }
             #tooltip p {
                 margin: 3px 0;
-                color: rgba(255, 255, 255, 0.6);
                 font-size: 12px;
-            }
-            #tooltip span {
-                color: rgba(255, 255, 255, 0.75);
             }
             /* pinned card (click / search): selectable, scrollable, links live */
             @media (hover: hover) {
@@ -285,7 +273,7 @@
                 display: none;
                 margin-left: auto;
                 padding: 0 2px;
-                color: var(--accent);
+                color: var(--ember);
                 text-decoration: none;
                 font-size: 13px;
                 flex-shrink: 0;
@@ -325,16 +313,19 @@
             /* the company card scrolls like the panels: #tooltip itself when pinned on
                desktop, #tooltip-content in the touch bottom sheet */
             .panel::-webkit-scrollbar,
+            #search-results::-webkit-scrollbar,
             #tooltip::-webkit-scrollbar,
             #tooltip-content::-webkit-scrollbar {
                 width: 3px;
             }
             .panel::-webkit-scrollbar-track,
+            #search-results::-webkit-scrollbar-track,
             #tooltip::-webkit-scrollbar-track,
             #tooltip-content::-webkit-scrollbar-track {
                 background: transparent;
             }
             .panel::-webkit-scrollbar-thumb,
+            #search-results::-webkit-scrollbar-thumb,
             #tooltip::-webkit-scrollbar-thumb,
             #tooltip-content::-webkit-scrollbar-thumb {
                 background: var(--border-mid);
@@ -347,13 +338,13 @@
                 margin-bottom: 4px;
             }
             .panel-dot {
-                color: var(--accent);
+                color: var(--ember);
                 font-size: 14px;
                 line-height: 1;
                 padding-bottom: 3px;
             }
             .panel-header h2 {
-                color: rgba(255, 255, 255, 0.9);
+                color: var(--lamp);
                 font-size: 14px;
                 font-weight: 500;
                 letter-spacing: 0.02em;
@@ -362,15 +353,17 @@
                 display: flex;
                 gap: 2px;
                 margin-left: auto;
+                /* the language buttons keep a finger's width from the collapse arrow */
+                margin-right: 10px;
             }
             .lang-btn {
-                background: var(--surface);
-                border: 1px solid var(--border-mid);
-                border-radius: 3px;
-                color: rgba(255, 255, 255, 0.65);
-                font-family: inherit;
-                font-size: 10px;
-                font-weight: 600;
+                background: none;
+                border: 1px solid var(--hair);
+                border-radius: 2px;
+                color: var(--dim);
+                font-family: var(--mono);
+                font-size: 8.5px;
+                font-weight: 400;
                 letter-spacing: 0.05em;
                 padding: 2px 5px;
                 cursor: pointer;
@@ -381,21 +374,25 @@
                 line-height: 1.4;
             }
             .lang-btn:hover {
-                background: var(--border-mid);
-                color: rgba(255, 255, 255, 0.7);
+                background: none;
+                border-color: var(--hair-hi);
+                color: var(--lamp);
             }
             .lang-btn.active {
-                background: rgba(108, 142, 255, 0.15);
-                border-color: rgba(108, 142, 255, 0.4);
-                color: var(--accent);
+                background: var(--lamp);
+                border-color: var(--lamp);
+                color: var(--ink);
+                box-shadow: var(--lit);
             }
             .panel-subtitle {
-                color: rgba(255, 255, 255, 0.55);
-                font-size: 11px;
-                letter-spacing: 0.05em;
+                font-family: var(--mono);
+                color: var(--dim);
+                font-size: 9.5px;
+                letter-spacing: 0.08em;
                 text-transform: uppercase;
                 padding-bottom: 10px;
-                border-bottom: 1px solid var(--border-subtle);
+                margin-bottom: 10px;
+                border-bottom: 1px solid var(--hair);
             }
             /* Night: the frame and the window corners go to the same black as the map */
             body.night {
@@ -411,9 +408,7 @@
             /* Left column: the masthead with the canton panel under it */
             #rail {
                 position: absolute;
-                top: 20px;
-                left: 20px;
-                bottom: 20px;
+                inset: 20px auto 20px 20px;
                 width: 285px;
                 display: flex;
                 flex-direction: column;
@@ -439,7 +434,7 @@
                 max-height: none;
             }
             .wordmark {
-                font-family: "Bricolage Grotesque", "Inter", sans-serif;
+                font-family: var(--display);
                 font-weight: 300;
                 font-size: 44px;
                 line-height: 0.95;
@@ -465,9 +460,7 @@
             /* Right column: the legend with the light panel under it */
             #rail-right {
                 position: absolute;
-                top: 20px;
-                right: 20px;
-                bottom: 20px;
+                inset: 20px 20px 20px auto;
                 width: 285px;
                 display: flex;
                 flex-direction: column;
@@ -703,36 +696,20 @@
                 transition: filter 0.15s;
             }
             .legend-label {
-                color: rgba(255, 255, 255, 0.65);
+                color: var(--soft);
                 font-size: 13px;
                 flex: 1;
             }
             .legend-count {
-                color: var(--white-muted);
-                font-size: 12px;
+                color: var(--dim);
+                font-family: var(--mono);
+                font-size: 9.5px;
             }
 
             /* Canton panel — left */
             #canton-panel {
                 min-width: 285px;
-            }
-            .canton-item {
-                display: flex;
-                align-items: center;
-                margin: 4px 0;
-                gap: 8px;
-                cursor: pointer;
-                user-select: none;
-                transition: opacity 0.15s;
-                padding: 4px;
-                border-radius: 4px;
-            }
-            .canton-item:hover,
-            .canton-item:active {
-                background: rgba(255, 255, 255, 0.04);
-            }
-            .canton-item.inactive {
-                opacity: 0.35;
+                overflow: visible;
             }
             .canton-badge {
                 font-size: 11px;
@@ -747,19 +724,6 @@
                 transition:
                     background 0.15s,
                     color 0.15s;
-            }
-            .canton-item.active .canton-badge {
-                background: rgba(108, 142, 255, 0.2);
-                color: var(--accent);
-            }
-            .canton-name {
-                color: var(--white-soft);
-                font-size: 13px;
-                flex: 1;
-            }
-            .canton-count {
-                color: rgba(255, 255, 255, 0.5);
-                font-size: 12px;
             }
             .canton-spinner {
                 display: inline-block;
@@ -783,22 +747,18 @@
                 position: absolute;
                 width: 44px;
                 height: 44px;
-                background: var(--bg);
-                border: 1px solid var(--border-mid);
-                border-radius: 8px;
                 cursor: pointer;
                 align-items: center;
                 justify-content: center;
                 z-index: 11;
                 font-size: 16px;
-                color: #fff;
             }
 
             /* In-panel collapse arrow (desktop only) */
             .panel-arrow {
                 background: none;
                 border: none;
-                color: rgba(255, 255, 255, 0.5);
+                color: var(--dim);
                 cursor: pointer;
                 font-size: 18px;
                 padding: 0 2px;
@@ -807,7 +767,7 @@
                 flex-shrink: 0;
             }
             .panel-arrow:hover {
-                color: rgba(255, 255, 255, 0.55);
+                color: var(--lamp);
             }
             #collapse-canton {
                 margin-left: auto;
@@ -849,13 +809,9 @@
                 line-height: 1;
             }
 
-            #title {
-                z-index: 10;
-            }
-
             @media (min-width: 981px) {
                 .panel {
-                    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+                    transition: transform 0.28s var(--ease);
                 }
                 #canton-panel.collapsed,
                 #rail:has(#canton-panel.collapsed) .masthead {
@@ -908,7 +864,7 @@
                     border-right: none;
                     border-bottom: none;
                     transform: translateY(100%);
-                    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+                    transition: transform 0.28s var(--ease);
                     overflow-y: auto;
                     display: block;
                     /* drag handle */
@@ -930,12 +886,14 @@
                     max-width: calc(100vw - 20px);
                     left: 10px !important;
                     right: 10px;
+                    /* an open sheet covers the timeline, not the reverse */
+                    z-index: 15;
                 }
                 #tooltip-close {
                     display: block;
                 }
                 .maplibregl-ctrl-bottom-right {
-                    bottom: calc(16px + var(--tl-h, 0px)) !important;
+                    bottom: calc(72px + var(--tl-h, 0px)) !important;
                     right: 16px !important;
                 }
             }
@@ -950,8 +908,6 @@
                     max-width: none;
                     max-height: 45vh;
                     padding: 14px 16px 0;
-                    border-radius: 16px 16px 0 0;
-                    border-bottom: none;
                     pointer-events: auto;
                     flex-direction: column;
                 }
@@ -975,43 +931,8 @@
                 }
             }
 
-            /* Loading pill — the map is usable underneath while the first canton streams in */
-            #loading-screen {
-                position: fixed;
-                bottom: 24px;
-                left: 50%;
-                transform: translateX(-50%);
-                z-index: 100;
-                background: var(--bg);
-                border: 1px solid var(--border-mid);
-                border-radius: 999px;
-                padding: 8px 16px 8px 12px;
-                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                pointer-events: none;
-                transition: opacity 0.4s ease;
-            }
-            #loading-screen.hidden {
-                opacity: 0;
-            }
-            .spinner {
-                width: 14px;
-                height: 14px;
-                border: 2px solid var(--white-dim);
-                border-top-color: var(--accent);
-                border-radius: 50%;
-                animation: spin 0.75s linear infinite;
-            }
             @keyframes spin {
                 to { transform: rotate(360deg); }
-            }
-            .loading-label {
-                color: rgba(255, 255, 255, 0.7);
-                font-size: 11px;
-                letter-spacing: 0.08em;
-                text-transform: uppercase;
             }
 
             /* Search bar — center top */
@@ -1041,43 +962,27 @@
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                background: var(--bg);
-                border: 1px solid var(--border-mid);
-                border-radius: 8px;
-                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-                color: rgba(255, 255, 255, 0.85);
                 cursor: pointer;
-                transition:
-                    border-color 0.15s,
-                    color 0.15s;
             }
             .mode-btn:hover {
                 border-color: rgba(255, 255, 255, 0.25);
                 color: #fff;
             }
-            .mode-btn.active {
-                background: rgba(var(--ember-raw), 0.3);
-                border-color: rgba(var(--ember-lit-raw), 0.55);
-                color: var(--lamp);
-                box-shadow: var(--lit);
-            }
             #search-wrapper {
                 display: flex;
                 align-items: center;
-                background: var(--bg);
-                border: 1px solid var(--border-mid);
-                border-radius: 8px;
-                padding: 0 12px;
+                background: var(--glass);
+                border: 1px solid var(--hair);
+                border-radius: 22px;
+                padding: 0 16px;
                 gap: 8px;
                 height: 44px; /* match the 44px panel toggles */
-                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
                 transition: border-color 0.15s;
             }
             #search-wrapper:focus-within {
-                border-color: rgba(108, 142, 255, 0.4);
+                border-color: var(--hair-hi);
             }
             #search-icon {
-                color: var(--white-muted);
                 font-size: 15px;
                 flex-shrink: 0;
                 line-height: 1;
@@ -1098,14 +1003,14 @@
                 background: none;
                 border: none;
                 outline: none;
-                color: #fff;
+                color: var(--lamp);
                 font-family: inherit;
                 font-size: 13px;
                 letter-spacing: 0.02em;
                 min-width: 0;
             }
             #search-input::placeholder {
-                color: rgba(255, 255, 255, 0.22);
+                color: var(--dim);
             }
             #search-input:placeholder-shown {
                 text-align: center;
@@ -1113,7 +1018,6 @@
             #search-clear {
                 background: none;
                 border: none;
-                color: var(--white-muted);
                 cursor: pointer;
                 font-size: 12px;
                 padding: 2px;
@@ -1125,41 +1029,33 @@
                 color: var(--white-soft);
             }
             #search-count {
-                color: rgba(255, 255, 255, 0.55);
-                font-size: 11px;
+                font-family: var(--mono);
+                font-size: 9.5px;
                 letter-spacing: 0.04em;
                 flex-shrink: 0;
                 display: none;
             }
             #search-results {
                 margin-top: 6px;
-                background: var(--bg);
-                border: 1px solid var(--border);
-                border-radius: 6px;
                 display: none;
                 box-shadow: 0 8px 32px var(--shadow-dark);
                 max-height: 320px;
                 overflow-y: auto;
             }
-            #search-results::-webkit-scrollbar { width: 3px; }
-            #search-results::-webkit-scrollbar-track { background: transparent; }
-            #search-results::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 3px; }
             .search-result-item {
                 display: flex;
                 align-items: center;
                 gap: 8px;
                 padding: 0 12px;
                 height: 36px;
-                box-sizing: border-box;
                 cursor: pointer;
                 transition: background 0.12s;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+                border-bottom: 1px solid var(--hair);
                 flex-shrink: 0;
             }
             .search-result-item:hover { background: rgba(255, 255, 255, 0.05); }
             .search-result-item.keyboard-active { background: rgba(255, 255, 255, 0.1); }
             .search-result-name {
-                color: rgba(255, 255, 255, 0.8);
                 font-size: 13px;
                 flex: 1;
                 white-space: nowrap;
@@ -1183,8 +1079,9 @@
             }
             @media (max-width: 980px) {
                 #search-bar {
-                    left: 74px;
-                    right: 74px;
+                    top: 16px;
+                    left: 68px;
+                    right: 68px;
                     width: auto;
                     max-width: none;
                     transform: none;
@@ -1245,12 +1142,11 @@
                 max-width: calc(100vw - 660px);
                 min-width: 560px; /* play, date and the three counters stay inside */
                 /* same surface as the canton and legend panels */
-                opacity: 0.97;
-                background: var(--bg);
-                border: 1px solid var(--border);
-                border-radius: 6px;
+                background: var(--glass);
+                border: 1px solid var(--hair);
+                border-radius: 4px;
                 padding: 10px 14px 12px;
-                color: rgba(255, 255, 255, 0.85);
+                color: var(--soft);
                 font-size: 12px;
             }
             #timeline[hidden] {
@@ -1266,21 +1162,24 @@
                 height: 32px;
                 flex: none;
                 border-radius: 50%;
-                border: 1px solid var(--border-mid);
-                background: var(--surface);
+                border: 1px solid var(--hair);
+                background: rgba(var(--ember-raw), 0.18);
                 color: var(--lamp);
                 font-size: 13px;
                 cursor: pointer;
+                transition:
+                    background-color 160ms,
+                    border-color 160ms;
             }
             #tl-play:hover {
-                background: rgba(255, 255, 255, 0.12);
+                border-color: var(--hair-hi);
+                background: rgba(var(--ember-raw), 0.4);
             }
             #tl-date {
                 font-size: 18px;
                 font-weight: 500;
                 font-variant-numeric: tabular-nums;
                 min-width: 6.5em;
-                color: #fff;
             }
             .tl-stats {
                 display: flex;
@@ -1291,7 +1190,6 @@
             }
             .tl-stats b {
                 font-weight: 600;
-                color: #fff;
             }
             .tl-open {
                 color: rgb(var(--spark-raw));
@@ -1387,23 +1285,13 @@
                     height: 48px;
                     margin-top: 6px;
                 }
-                /* the source line carries the pre-2018 caveat: it wraps rather than being cut */
-                /* an open sheet covers the timeline, not the reverse: the company card
-                   goes on top, and the panels (slightly translucent) hide it */
-                #tooltip {
-                    z-index: 15;
-                }
+                /* the panels (slightly translucent) hide the timeline */
                 body:has(.panel.open) #timeline {
                     visibility: hidden;
                 }
                 /* ...and the bars and map controls drop back to the bottom with it */
                 body:has(.panel.open) {
                     --tl-h: 0px;
-                }
-                /* map controls sit above the timeline (--tl-h is its height, 0 while
-                   hidden; set by a ResizeObserver) */
-                .maplibregl-ctrl-bottom-left {
-                    bottom: var(--tl-h, 0px);
                 }
             }
             /* ── Phones ───────────────────────────────────────────────────────────── */
@@ -1486,7 +1374,6 @@
                 border: 1px solid var(--hair);
                 border-radius: 50%;
                 color: var(--soft);
-                box-shadow: none;
                 transition:
                     border-color 160ms,
                     color 160ms,
@@ -1505,29 +1392,9 @@
                 color: var(--lamp);
                 box-shadow: var(--lit);
             }
-            #search-wrapper {
-                background: var(--glass);
-                border: 1px solid var(--hair);
-                border-radius: 22px;
-                padding: 0 16px;
-                box-shadow: none;
-            }
-            #search-wrapper:focus-within {
-                border-color: var(--hair-hi);
-            }
             #search-icon,
             #search-clear,
             #search-count {
-                color: var(--dim);
-            }
-            #search-count {
-                font-family: var(--mono);
-                font-size: 9.5px;
-            }
-            #search-input {
-                color: var(--lamp);
-            }
-            #search-input::placeholder {
                 color: var(--dim);
             }
             #search-results,
@@ -1536,9 +1403,6 @@
                 border: 1px solid var(--hair);
                 border-radius: 4px;
             }
-            .search-result-item {
-                border-bottom-color: var(--hair);
-            }
             .search-result-name,
             #tooltip h3 {
                 color: var(--lamp);
@@ -1546,24 +1410,6 @@
             #tooltip p,
             #tooltip span {
                 color: var(--soft);
-            }
-            .tt-link {
-                color: var(--ember);
-            }
-            /* panel heads: the title in the lamp's color, the rest as labels */
-            .panel-dot {
-                color: var(--ember);
-            }
-            .panel-header h2 {
-                color: var(--lamp);
-            }
-            .panel-subtitle {
-                font-family: var(--mono);
-                font-size: 9.5px;
-                letter-spacing: 0.08em;
-                color: var(--dim);
-                border-bottom-color: var(--hair);
-                margin-bottom: 10px;
             }
             /* the legend's select / deselect all: quiet buttons in the panel's glass */
             .panel-controls {
@@ -1593,95 +1439,15 @@
                 border-color: var(--hair-hi);
                 color: var(--lamp);
             }
-            .lang-btn {
-                background: none;
-                border: 1px solid var(--hair);
-                border-radius: 2px;
-                color: var(--dim);
-                font-family: var(--mono);
-                font-size: 8.5px;
-                font-weight: 400;
-            }
-            .lang-btn:hover {
-                background: none;
-                border-color: var(--hair-hi);
-                color: var(--lamp);
-            }
-            .lang-btn.active {
-                background: var(--lamp);
-                border-color: var(--lamp);
-                color: var(--ink);
-                box-shadow: var(--lit);
-            }
-            .panel-arrow {
-                color: var(--dim);
-            }
-            .panel-arrow:hover {
-                color: var(--lamp);
-            }
-            .legend-label {
-                color: var(--soft);
-            }
-            .legend-count {
-                color: var(--dim);
-                font-family: var(--mono);
-                font-size: 9.5px;
-            }
-            /* the timeline: the panels' glass, brasilume's ember play button and select */
-            #timeline {
-                opacity: 1;
-                background: var(--glass);
-                border: 1px solid var(--hair);
-                border-radius: 4px;
-                color: var(--soft);
-            }
-            #tl-play {
-                border: 1px solid var(--hair);
-                background: rgba(var(--ember-raw), 0.18);
-                color: var(--lamp);
-                transition:
-                    background-color 160ms,
-                    border-color 160ms;
-            }
-            #tl-play:hover {
-                border-color: var(--hair-hi);
-                background: rgba(var(--ember-raw), 0.4);
-            }
+            /* the timeline: the panels' glass, brasilume's ember play button */
             #tl-date,
             .tl-stats b {
                 color: var(--lamp);
-            }
-            #tl-speed {
-                padding: 3px 22px 3px 8px;
-                border: 1px solid var(--hair);
-                border-radius: 4px;
-                background: rgba(var(--ink-raw), 0.5)
-                    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238f8473' stroke-width='1.4'/%3E%3C/svg%3E")
-                    no-repeat right 8px center / 9px 5px;
-                color: var(--lamp);
-                font-family: var(--mono);
-                font-size: 9.5px;
-                cursor: pointer;
-                -webkit-appearance: none;
-                appearance: none;
-            }
-            #tl-speed:hover {
-                border-color: var(--hair-hi);
-            }
-            #tl-speed option {
-                background: var(--ink);
-                color: var(--lamp);
-            }
-            #tl-speed::picker-icon {
-                display: none;
             }
 
             /* ---------- canton picker, from ../brasilume's #picker ----------
                a tile per canton, set roughly where it sits on the map; its glow
                is the number of companies (log scale), set inline as --glow */
-            #canton-panel {
-                overflow: visible;
-            }
             #canton-items {
                 display: grid;
                 grid-template-columns: repeat(8, 1fr);
@@ -1695,9 +1461,8 @@
                 aspect-ratio: 1;
                 display: grid;
                 place-items: center;
-                margin: 0;
-                padding: 0;
-                gap: 0;
+                cursor: pointer;
+                user-select: none;
                 border: 1px solid rgba(var(--lamp-raw), 0.07);
                 border-radius: 2px;
                 font-family: var(--mono);
@@ -1710,9 +1475,6 @@
                     background-color 160ms,
                     border-color 160ms,
                     color 160ms;
-            }
-            .canton-item.inactive {
-                opacity: 1;
             }
             .canton-item:hover,
             .canton-item:active {
@@ -1762,7 +1524,7 @@
                 display: none;
             }
             .peek strong {
-                font-family: "Bricolage Grotesque", "Inter", sans-serif;
+                font-family: var(--display);
                 font-weight: 800;
                 font-size: 15px;
                 color: var(--lamp);
@@ -1870,10 +1632,9 @@
                 letter-spacing: 0;
             }
             @media (max-width: 980px) {
-                /* phones: icons only, above the timeline */
+                /* phones: the chips live in the dock */
                 .chips {
-                    right: 16px;
-                    bottom: calc(16px + env(safe-area-inset-bottom) + var(--tl-h, 0px));
+                    display: none;
                 }
                 .chip {
                     width: 40px;
@@ -1912,7 +1673,7 @@
             }
             .about h2 {
                 margin: 0 0 14px;
-                font-family: "Bricolage Grotesque", "Inter", sans-serif;
+                font-family: var(--display);
                 font-weight: 800;
                 font-size: 26px;
                 letter-spacing: -0.02em;
@@ -1969,11 +1730,6 @@
                     top: 16px;
                     right: 16px;
                 }
-                #search-bar {
-                    top: 16px;
-                    left: 68px;
-                    right: 68px;
-                }
                 /* the bottom right: one glass bar, the light, the camera and the about */
                 .dock {
                     display: flex;
@@ -2022,29 +1778,20 @@
                     color: var(--lamp);
                     box-shadow: var(--lit);
                 }
-                .chips {
-                    display: none;
-                }
                 /* the sheets keep their last rows clear of the bar */
                 #canton-panel,
                 #legend,
                 #light-panel {
                     padding-bottom: calc(76px + env(safe-area-inset-bottom)) !important;
                 }
-                .maplibregl-ctrl-bottom-right {
-                    bottom: calc(72px + var(--tl-h, 0px)) !important;
-                }
-                /* the credits button sits level with the bar, at the left edge */
+                /* the credits button sits level with the bar, at the left edge, above
+                   the timeline (--tl-h is its height, 0 while hidden; set by a ResizeObserver) */
                 .maplibregl-ctrl-bottom-left {
                     bottom: var(--tl-h, 0px) !important;
                 }
                 .maplibregl-ctrl-bottom-left .maplibregl-ctrl {
                     margin: 0 0 calc(28px + env(safe-area-inset-bottom)) 16px;
                 }
-            }
-            /* the language buttons keep a finger's width from the collapse arrow */
-            .lang-switcher {
-                margin-right: 10px;
             }
             /* phones: no text under 12px (the panels' counts, badges and small print) */
             @media (max-width: 980px) {
@@ -2070,10 +1817,6 @@
                 border-top: 4.5px solid transparent;
                 border-bottom: 4.5px solid transparent;
             }
-            :root {
-                /* the tour's cinema bars: the frame cut to 2.39:1, at most 16% of the screen each */
-                --lb: clamp(0px, calc((100vh - 100vw / 2.39) / 2), 16vh);
-            }
             #tour {
                 position: fixed;
                 inset: 0;
@@ -2090,7 +1833,7 @@
                 height: var(--lb);
                 background: #000;
                 transform: scaleY(0);
-                transition: transform 900ms cubic-bezier(0.4, 0, 0.2, 1);
+                transition: transform 900ms var(--ease);
             }
             #tour .bar.top {
                 top: 0;
@@ -2192,7 +1935,7 @@
             }
             #tour-line {
                 display: block;
-                font-family: "Bricolage Grotesque", "Inter", sans-serif;
+                font-family: var(--display);
                 font-size: clamp(20px, 2.6vw, 38px);
                 line-height: 1.2;
                 color: var(--lamp);
@@ -2206,7 +1949,7 @@
                 width: 22px;
                 height: 22px;
                 transform: translate(var(--x, 50vw), var(--y, 50vh));
-                transition: transform 650ms cubic-bezier(0.4, 0, 0.2, 1), opacity 300ms;
+                transition: transform 650ms var(--ease), opacity 300ms;
                 opacity: 0;
                 filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.9));
             }
