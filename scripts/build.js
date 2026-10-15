@@ -3,12 +3,14 @@
 // Also copies sw.js and all data/ assets to dist/
 
 import { minify } from "html-minifier-terser";
-import { copyFileSync, cpSync, mkdirSync, readFileSync, writeFileSync, statSync } from "fs";
-import { join } from "path";
+import { copyFileSync, cpSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync, statSync } from "fs";
+import { basename, join } from "path";
 
 const ROOT = new URL("..", import.meta.url).pathname;
 const DIST = join(ROOT, "dist");
 
+// from scratch, so nothing removed from the site lingers in dist/
+rmSync(DIST, { recursive: true, force: true });
 mkdirSync(DIST, { recursive: true });
 
 // ── 1. Minify index.html ─────────────────────────────────────────────────────
@@ -49,10 +51,11 @@ if (!sw.includes(`cantography-${sha}`)) throw new Error("sw.js: cache name not f
 writeFileSync(join(DIST, "sw.js"), sw);
 
 // ── 3. Copy static assets ─────────────────────────────────────────────────────
-cpSync(join(ROOT, "data"), join(DIST, "data"), { recursive: true });
-copyFileSync(join(ROOT, "mini.jpg"), join(DIST, "mini.jpg"));
-copyFileSync(join(ROOT, "sample2.jpg"), join(DIST, "sample2.jpg"));
-for (const icon of ["favicon.svg", "favicon.png", "apple-touch-icon.png"]) copyFileSync(join(ROOT, icon), join(DIST, icon));
+// only what the page fetches: registered.json.gz and opening_dates.json.gz are inputs
+// of the data pipeline, and sample.jpg is the README's picture
+const PIPELINE_ONLY = new Set(["registered.json.gz", "opening_dates.json.gz"]);
+cpSync(join(ROOT, "data"), join(DIST, "data"), { recursive: true, filter: (src) => !PIPELINE_ONLY.has(basename(src)) });
+for (const file of ["mini.jpg", "favicon.svg", "favicon.png", "apple-touch-icon.png"]) copyFileSync(join(ROOT, file), join(DIST, file));
 
 // ── 4. Report sizes ───────────────────────────────────────────────────────────
 const srcSize  = statSync(join(ROOT, "index.html")).size;
@@ -62,5 +65,8 @@ const saved    = srcSize - distSize;
 const pct      = ((saved / srcSize) * 100).toFixed(1);
 
 console.log(`index.html: ${(srcSize / 1024).toFixed(1)} KB → ${(distSize / 1024).toFixed(1)} KB  (−${pct}%, saved ${(saved / 1024).toFixed(1)} KB)`);
+console.log(`            ${(Bun.gzipSync(readFileSync(join(DIST, "index.html"))).length / 1024).toFixed(1)} KB gzipped, as served`);
 console.log(`sw.js:      ${(swSize / 1024).toFixed(1)} KB  (cache cantography-${sha})`);
+const du = (dir) => readdirSync(dir, { withFileTypes: true }).reduce((n, e) => n + (e.isDirectory() ? du(join(dir, e.name)) : statSync(join(dir, e.name)).size), 0);
+console.log(`dist/:      ${(du(DIST) / 1048576).toFixed(1)} MB`);
 console.log(`dist/ ready at: ${DIST}`);

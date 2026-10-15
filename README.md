@@ -5,7 +5,7 @@ An interactive map of every registered company in Switzerland — all 795,000 of
 ---
 
 <p align="center">
-  <img src="sample2.jpg" width="800">
+  <img src="sample.jpg" width="800">
 </p>
 
 ---
@@ -99,6 +99,7 @@ For those curious about how it works under the hood:
 - The layout adapts to phones (bottom sheets, notch and home-bar safe areas, `100dvh`, 16px inputs so iOS does not zoom)
 - The map renders entirely in your browser using [deck.gl](https://deck.gl) and [MapLibre GL](https://maplibre.org/)
 - Keyboard navigation, ARIA labels, and colour contrast meet WCAG AA accessibility standards
+- The data files are gzip written by [zopfli](https://github.com/google/zopfli) (`scripts/zopfli_data.py`): the same format the browser already unzips, ~6% smaller than `gzip -9`. The deploy ships only what the page fetches
 - The whole thing is a single HTML file + data files, minified by `scripts/build.js` and hosted for free on GitHub Pages at [cantography.ch](https://cantography.ch) (formerly SwissViz)
 
 ### Data pipeline
@@ -149,6 +150,7 @@ python3 scripts/fetch_cantonal.py --parquet   # cantonal cache -> data/registere
 python3 scripts/canton_files.py          # canton files + search index
 python3 scripts/canton_counts.py         # totals in index.html
 python3 scripts/build_timeline.py        # timeline (bump TL_VERSION in index.html)
+uv run --with zopfli python scripts/zopfli_data.py   # recompress what the page fetches, ~6% smaller
 ```
 
 ---
