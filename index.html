@@ -2737,37 +2737,26 @@
             // cantonId → canton object
             const _cantonById = new Map(CANTONS.map(c => [c.id, c]));
 
-            // Memoized getColor — rechtsform string → [r,g,b]
-            const _colorCache = new Map();
-            function getColor(rechtsform) {
-                if (_colorCache.has(rechtsform)) return _colorCache.get(rechtsform);
+            // rechtsform string → its label: the first legal form whose key it contains,
+            // else the string itself; memoized in cache. The parse worker runs this same
+            // source (see _workerSrc), so it uses nothing but its arguments.
+            function labelOf(rechtsform, assignments, cache) {
+                if (cache.has(rechtsform)) return cache.get(rechtsform);
                 const rf = rechtsform.toUpperCase();
-                for (const a of colorAssignments) {
+                let label = rechtsform;
+                for (const a of assignments) {
                     if (rf.includes(a.rfKey)) {
-                        const v = hexToRgb(a.hex);
-                        _colorCache.set(rechtsform, v);
-                        return v;
+                        label = a.label;
+                        break;
                     }
                 }
-                const fallback = hexToRgb("#1a1a30");
-                _colorCache.set(rechtsform, fallback);
-                return fallback;
+                cache.set(rechtsform, label);
+                return label;
             }
-
-            // Memoized getLabel — rechtsform string → label string
             const _labelCache = new Map();
-            function getLabel(rechtsform) {
-                if (_labelCache.has(rechtsform)) return _labelCache.get(rechtsform);
-                const rf = rechtsform.toUpperCase();
-                for (const a of colorAssignments) {
-                    if (rf.includes(a.rfKey)) {
-                        _labelCache.set(rechtsform, a.label);
-                        return a.label;
-                    }
-                }
-                _labelCache.set(rechtsform, rechtsform);
-                return rechtsform;
-            }
+            const getLabel = (rechtsform) => labelOf(rechtsform, colorAssignments, _labelCache);
+            // rechtsform string → [r,g,b], its label's color (_noFormRgb if none)
+            const getColor = (rechtsform) => _labelToRgb.get(getLabel(rechtsform)) ?? _noFormRgb;
 
             // ── State ──────────────────────────────────────────────────────────────
             const activeLabels = new Set(colorAssignments.map((a) => a.label)); // active legal forms
@@ -3329,7 +3318,9 @@ const T=${JSON.stringify(T_DECODE)};
 const C=${JSON.stringify(colorAssignments)};
 const _lCache=new Map();
 const LB=new Map(C.map((a,i)=>[a.label,1<<i]));
-function gl(rf){if(_lCache.has(rf))return _lCache.get(rf);const u=rf.toUpperCase();for(const a of C){if(u.includes(a.rfKey)){_lCache.set(rf,a.label);return a.label;}}_lCache.set(rf,rf);return rf;}
+// the page's own labelOf, as an expression: the minifier may rename the function
+const labelOf=${labelOf};
+const gl=(rf)=>labelOf(rf,C,_lCache);
 // one address = one point; its companies are the range off[p]..off[p+1] of the
 // company columns, in file order. Typed arrays go back as transferables and the
 // names as one string: cloning a point object per address cost the page ~1.2 s
