@@ -5609,7 +5609,7 @@ self.onmessage=async({data})=>{
                 const fit = map.cameraForBounds(SWISS_BOUNDS, { padding: 12 });
                 return { ...TOUR_HOME, zoom: Math.min(TOUR_HOME.zoom, fit?.zoom ?? TOUR_HOME.zoom) };
             }
-            const TOUR_MS = 78000; // the scenes' length, for the progress bar
+            const TOUR_MS = 75000; // the scenes' length, for the progress bar
             let tourOn = false;
             let tourRun = 0; // bumped on every start and stop: a stale scene ends at its next await
             let tourSaved = null;
@@ -5996,8 +5996,8 @@ self.onmessage=async({data})=>{
                 await tourWait(run, 300);
                 tourCaption("Zurich · 2016–2026", `${tourNum(tourCount("ZH", ZH, from, to))} new AGs and GmbHs in ten years.`);
                 await tourLanded(run);
-                tourOrbit(run, { zoom: 13.4 }, 360, 9000);
-                await tourPlay(run, from, to, 9000);
+                tourOrbit(run, { zoom: 13.4 }, 360, 8000);
+                await tourPlay(run, from, to, 8000);
 
                 // 3 · Bern: sole proprietors, straight down, then tilting; the timeline's play
                 tourCaption("", "");
@@ -6046,7 +6046,7 @@ self.onmessage=async({data})=>{
                 tourShow("search");
                 tourCaption("search", `Any of ${tourNum(total)} companies, at its address.`);
                 await tourSearch(run, "Nestlé Suisse", 1400);
-                await tourWait(run, 3600);
+                await tourWait(run, 3000);
 
                 // 6 · Lugano: foreign companies' branches by the lake, one turn round
                 hideTooltip();
@@ -6060,11 +6060,11 @@ self.onmessage=async({data})=>{
                 await tourWait(run, 300);
                 tourCaption(
                     "Lugano · 2016–2026",
-                    `${tourNum(tourCount("TI", TI, from, to))} foreign companies opened a branch in Ticino, ${tourNum(tourCount("TI", TI, from, to, "c16"))} closed one.`,
+                    `${tourNum(tourCount("TI", TI, from, to))} foreign companies opened a branch in Ticino, ${tourNum(tourCount("TI", TI, from, to, "c16"))} were closed.`,
                 );
                 await tourLanded(run);
-                tourOrbit(run, { zoom: 13.5 }, 360, 8000);
-                await tourPlay(run, from, to, 8000);
+                tourOrbit(run, { zoom: 13.5 }, 360, 7000);
+                await tourPlay(run, from, to, 7000);
 
                 // 7 · the whole country from above, rewound to 2000, then all of it lit again
                 tourCaption("", "");
@@ -6076,12 +6076,13 @@ self.onmessage=async({data})=>{
                 await tourTimeline(run, true, tl.lastDay);
                 tourFly(home, 2500);
                 await tourLanded(run);
+                tourCaption(`${new Date(TL_EPOCH + tl.lastDay * 864e5).getUTCFullYear()} → 2000`, "Rewind into the past.");
                 await tourPlay(run, tl.lastDay, tourDay("2000-01-01"), 3000, { clock: true });
                 await tourWait(run, 400);
                 tourYear("");
                 await tourTimeline(run, false);
                 tourCaption("cantography.ch", "Switzerland, one company at a time.");
-                await tourWait(run, 3500);
+                await tourWait(run, 3200);
                 document.querySelector("#tour-progress i").style.transform = "scaleX(1)";
             }
 

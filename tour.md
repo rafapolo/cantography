@@ -1,6 +1,6 @@
 # Tour: the script
 
-The tour is a ~78 s camera ride made for the Swiss Viz Awards video. It also shows how to use the site: a drawn pointer clicks the real controls. To play it, use the **▶ tour** button among the chips at the bottom right, or open `?tour=1`, which starts on its own once the map has loaded. **Esc** or **✕ esc** stop the tour and put the filters, the timeline and night view back the way they were.
+The tour is a ~75 s camera ride made for the Swiss Viz Awards video. It also shows how to use the site: a drawn pointer clicks the real controls. To play it, use the **▶ tour** button among the chips at the bottom right, or open `?tour=1`, which starts on its own once the map has loaded. **Esc** or **✕ esc** stop the tour and put the filters, the timeline and night view back the way they were.
 
 This file describes what happens in each scene. To change something, edit it here and ask for the change in the code: the scenes live in `tourScenes()`, in `index.html`.
 
@@ -19,7 +19,7 @@ This file describes what happens in each scene. To change something, edit it her
 
 ## Scenes
 
-Times measured on 2026-10-15, in a 1030×1037 window.
+Times measured on 2026-10-15, in a 1030×1037 window, then shortened by 2.9 s.
 
 | # | time | place and camera | what happens | kicker · line |
 |---|---|---|---|---|
@@ -27,14 +27,14 @@ Times measured on 2026-10-15, in a 1030×1037 window.
 | 1a | 4.9–6.7 s | flies to Geneva (zoom 12.4, pitch 60°, bearing −25°) | the search bar shows and the pointer clicks the night view button (the plane), which turns off | **night view** · *Night view off: each legal form in its own colour.* |
 | 1b | 6.7–10.5 s | Geneva | the legend shows; the pointer clicks **Deselect all**, then **Foundation** and **Association** | **legend** · *Pick legal forms in the legend.* |
 | 1c | 10.5–17.6 s | Geneva, slowly turning (bearing to 5°, zoom 12.8) | the timeline runs from Jan 2016 to today in 7 s; the big year shows at the top left | **Geneva · 2016–2026** · *N associations and foundations opened in ten years.* (N = 2,009) |
-| 2 | 17.6–30.4 s | flies to central Zurich (zoom 13.1, pitch 66°, bearing 40°), then one full 360° turn in 9 s, closing in to zoom 13.4 | pointer: **Deselect all**, **Corporation (AG)**, **LLC / SARL**; timeline from 2016 to today in 9 s | **Zurich · 2016–2026** · *N new AGs and GmbHs in ten years.* (N = 50,769) |
-| 3a | 30.4–34.4 s | flies to Bern, seen from straight above (zoom 12.6) | pointer: **Deselect all**, **Sole Proprietorship**; the timeline bar shows at the bottom | **timeline** · *Play the timeline: every opening and closing since 2018.* |
-| 3b | 34.4–40.5 s | Bern, tilting to 55° | the pointer goes to the timeline's ▶, which turns to ❚❚; from 2016 to today in 6 s | **Bern · 2016–2026** · *N sole proprietors set up shop.* (N = 15,231) |
-| 4 | 40.5–49.1 s | flies to Lausanne (zoom 11.6, pitch 50°, bearing −30°), turns to −50° | all forms; the pointer turns night view back on; timeline from Jan 2019 to Dec 2021 in 6 s, closures in red | **Vaud · 2019–2021** · *In 2020 closures fell N%: the year of COVID loans and a pause on debt collection.* (N = 25; had closures gone up, the line would say *rose*) |
-| 5 | 49.1–55.8 s | Vevey | the timeline goes and today's map comes back; the pointer clicks the search, "Nestlé Suisse" is typed one letter at a time (1.4 s), the first hit opens and its card stays pinned | **search** · *Any of N companies, at its address.* (N = 795,271) |
-| 6 | 55.8–68.2 s | flies to Lugano (zoom 13.2, pitch 60°, bearing 20°), then one full 360° turn in 8 s, closing in to zoom 13.5 | the card closes and the timeline comes back; the pointer turns night view off, then **Deselect all**, **Foreign Branch**; timeline from 2016 to today in 8 s | **Lugano · 2016–2026** · *N foreign companies opened a branch in Ticino, M closed one.* (N = 271, M = 386) |
-| 7a | 68.2–74.3 s | flies back to all of Switzerland (2.5 s), from above | all forms again; night view turns on unseen; the timeline rewinds from today to Jan 2000 in 3 s, the lamps going out one by one (no white flashes) | no caption |
-| 7b | 74.3–77.8 s | all of Switzerland | the timeline goes and the whole map is lit again as it is today | **cantography.ch** · *Switzerland, one company at a time.* |
+| 2 | 17.6–29.4 s | flies to central Zurich (zoom 13.1, pitch 66°, bearing 40°), then one full 360° turn in 8 s, closing in to zoom 13.4 | pointer: **Deselect all**, **Corporation (AG)**, **LLC / SARL**; timeline from 2016 to today in 8 s | **Zurich · 2016–2026** · *N new AGs and GmbHs in ten years.* (N = 50,769) |
+| 3a | 29.4–33.4 s | flies to Bern, seen from straight above (zoom 12.6) | pointer: **Deselect all**, **Sole Proprietorship**; the timeline bar shows at the bottom | **timeline** · *Play the timeline: every opening and closing since 2018.* |
+| 3b | 33.4–39.5 s | Bern, tilting to 55° | the pointer goes to the timeline's ▶, which turns to ❚❚; from 2016 to today in 6 s | **Bern · 2016–2026** · *N sole proprietors set up shop.* (N = 15,231) |
+| 4 | 39.5–48.1 s | flies to Lausanne (zoom 11.6, pitch 50°, bearing −30°), turns to −50° | all forms; the pointer turns night view back on; timeline from Jan 2019 to Dec 2021 in 6 s, closures in red | **Vaud · 2019–2021** · *In 2020 closures fell N%: the year of COVID loans and a pause on debt collection.* (N = 25; had closures gone up, the line would say *rose*) |
+| 5 | 48.1–54.2 s | Vevey | the timeline goes and today's map comes back; the pointer clicks the search, "Nestlé Suisse" is typed one letter at a time (1.4 s), the first hit opens and its card stays pinned | **search** · *Any of N companies, at its address.* (N = 795,271) |
+| 6 | 54.2–65.6 s | flies to Lugano (zoom 13.2, pitch 60°, bearing 20°), then one full 360° turn in 7 s, closing in to zoom 13.5 | the card closes and the timeline comes back; the pointer turns night view off, then **Deselect all**, **Foreign Branch**; timeline from 2016 to today in 7 s | **Lugano · 2016–2026** · *N foreign companies opened a branch in Ticino, M were closed.* (N = 271, M = 386) |
+| 7a | 65.6–71.7 s | flies back to all of Switzerland (2.5 s), from above | all forms again; night view turns on unseen; the timeline rewinds from today to Jan 2000 in 3 s, the lamps going out one by one (no white flashes) | **2026 → 2000** · *Rewind into the past.* |
+| 7b | 71.7–74.9 s | all of Switzerland | the timeline goes and the whole map is lit again as it is today | **cantography.ch** · *Switzerland, one company at a time.* |
 
 ## Where the numbers come from
 
