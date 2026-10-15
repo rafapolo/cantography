@@ -2039,7 +2039,8 @@
                     font-size: 12px;
                 }
             }
-            /* ---------- the tour: a ~50 s camera ride for the video ---------- */
+            /* ---------- the tour: a ~1 min camera ride for the video, that shows how
+               the legend, the timeline and the search are used ---------- */
             #tour-open::before {
                 content: "";
                 width: 0;
@@ -2082,10 +2083,27 @@
             #tour.on .bar {
                 transform: scaleY(1);
             }
+            /* how far the tour has gone: a hairline on the bottom bar's edge */
+            #tour-progress {
+                position: absolute;
+                left: 0;
+                right: 0;
+                bottom: var(--lb);
+                height: 2px;
+                background: rgba(var(--lamp-raw), 0.1);
+            }
+            #tour-progress i {
+                display: block;
+                height: 100%;
+                background: var(--ember);
+                box-shadow: var(--lit);
+                transform: scaleX(0);
+                transform-origin: left;
+            }
             #tour-year {
                 position: absolute;
-                top: calc(var(--lb) + 22px);
-                right: 32px;
+                top: calc(var(--lb) + 16px);
+                left: 88px;
                 font-family: var(--mono);
                 font-size: clamp(22px, 3.2vw, 44px);
                 letter-spacing: 0.02em;
@@ -2106,11 +2124,15 @@
                 text-align: center;
                 opacity: 0;
                 transform: translateY(8px);
-                transition: opacity 600ms, transform 600ms;
+                transition: opacity 600ms, transform 600ms, bottom 500ms;
             }
             #tour-cap.on {
                 opacity: 1;
                 transform: none;
+            }
+            /* the timeline shows under the caption */
+            body.tour-tl #tour-cap {
+                bottom: calc(var(--lb) + 160px);
             }
             #tour-kicker {
                 display: block;
@@ -2128,6 +2150,49 @@
                 line-height: 1.2;
                 color: var(--lamp);
                 text-shadow: 0 0 18px rgba(0, 0, 0, 0.9), 0 0 4px rgba(0, 0, 0, 0.9);
+            }
+            /* a drawn pointer that goes to the controls and clicks them */
+            #tour-cursor {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 22px;
+                height: 22px;
+                transform: translate(var(--x, 50vw), var(--y, 50vh));
+                transition: transform 650ms cubic-bezier(0.4, 0, 0.2, 1), opacity 300ms;
+                opacity: 0;
+                filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.9));
+            }
+            #tour-cursor.on {
+                opacity: 1;
+            }
+            #tour-cursor svg {
+                display: block;
+                width: 22px;
+                height: 22px;
+            }
+            #tour-cursor .ring {
+                position: absolute;
+                left: -13px;
+                top: -13px;
+                width: 26px;
+                height: 26px;
+                border: 2px solid var(--lamp);
+                border-radius: 50%;
+                opacity: 0;
+            }
+            #tour-cursor.click .ring {
+                animation: tour-click 450ms ease-out;
+            }
+            @keyframes tour-click {
+                from {
+                    transform: scale(0.3);
+                    opacity: 1;
+                }
+                to {
+                    transform: scale(1.6);
+                    opacity: 0;
+                }
             }
             #tour-stop {
                 position: absolute;
@@ -2149,30 +2214,42 @@
             #tour-stop:focus-visible {
                 opacity: 1;
             }
-            /* a clean frame: only the map, the search in its scene and the company card */
+            /* a clean frame: the map, and each control only in the scene that shows it */
             body.touring #rail,
-            body.touring #legend,
             body.touring .panel-toggle,
             body.touring .chips,
             body.touring .dock,
-            body.touring #timeline,
             body.touring #progress,
             body.touring #light-panel,
             body.touring .maplibregl-ctrl {
                 visibility: hidden !important;
             }
+            body.touring #rail-right {
+                top: calc(var(--lb) + 16px);
+            }
+            body.touring #legend,
+            body.touring #timeline,
+            body.touring #search-bar {
+                opacity: 0;
+                transition: opacity 500ms;
+                pointer-events: none;
+            }
+            body.touring.tour-legend #legend,
+            body.touring.tour-tl #timeline,
+            body.touring.tour-search #search-bar,
+            body.touring.tour-modes #search-bar {
+                opacity: 1;
+            }
+            body.touring #timeline {
+                bottom: calc(var(--lb) + 16px);
+            }
             /* the search shows in its scene, under the top bar and above the film */
             body.touring #search-bar {
                 top: calc(var(--lb) + 24px);
                 z-index: 41;
-                opacity: 0;
-                transition: opacity 500ms;
             }
-            body.touring #search-bar .mode-btn {
+            body.touring:not(.tour-modes) #search-bar .mode-btn {
                 visibility: hidden;
-            }
-            body.touring.tour-search #search-bar {
-                opacity: 1;
             }
             /* the company card of the search scene stays inside the frame */
             body.touring #tooltip {
@@ -2347,12 +2424,17 @@
         </div>
         <!-- phones: the view's buttons gather here, at the bottom (placeDock) -->
         <nav id="dock" class="dock" aria-label="Map tools"></nav>
-        <!-- the tour (startTour, in the script): cinema bars, the year, a caption -->
+        <!-- the tour (startTour, in the script): cinema bars, the year, a caption, a pointer -->
         <div id="tour" hidden>
             <div class="bar top"></div>
             <div class="bar bottom"></div>
+            <div id="tour-progress" aria-hidden="true"><i></i></div>
             <div id="tour-year" aria-hidden="true"></div>
             <p id="tour-cap" aria-live="polite"><span id="tour-kicker"></span><span id="tour-line"></span></p>
+            <div id="tour-cursor" aria-hidden="true">
+                <svg viewBox="0 0 22 22"><path d="M3 2l15 9.5-6.6 1.3L8.6 19.5z" fill="#ede3d1" stroke="#0b0908" stroke-width="1.4" stroke-linejoin="round"/></svg>
+                <span class="ring"></span>
+            </div>
             <button type="button" id="tour-stop" aria-label="Stop the tour">✕ esc</button>
         </div>
 
@@ -5574,19 +5656,25 @@ self.onmessage=async({data})=>{
                 if (!document.getElementById("search-bar").contains(e.target)) closeResults();
             });
 
-            // ── Tour: a ~50 s camera ride for the video ─────────────────────────────
+            // ── Tour: a ~1 min camera ride for the video ────────────────────────────
             // Geneva's associations and foundations, Zurich's AGs and GmbHs, Bern's sole
             // proprietors, Vaud's closings around the pandemic, a search, and back to the
-            // whole country. Each scene's numbers are counted from the timeline itself.
+            // whole country. On a wide screen a drawn pointer clicks the real legend,
+            // timeline and search on the way, so the film also shows how to use them.
+            // Each scene's numbers are counted from the timeline itself.
             // ?tour=1 starts it once the map is in; Esc or ✕ stops it.
             const TOUR_HOME = { center: [8.23, 46.82], zoom: 7.15, pitch: 0, bearing: 0 };
+            const TOUR_MS = 57000; // the scenes' length, for the progress bar
             let tourOn = false;
             let tourRun = 0; // bumped on every start and stop: a stale scene ends at its next await
             let tourSaved = null;
+            let tourT0 = 0;
             const tourDay = (iso) => Math.round((Date.parse(iso) - TL_EPOCH) / 864e5);
             const tourNum = (n) => n.toLocaleString("en-US");
             // the tour speaks English, whatever the page's language
             const tourDate = (day) => new Date(TL_EPOCH + Math.floor(day) * 864e5).toLocaleDateString("en-US", { year: "numeric", month: "short", timeZone: "UTC" });
+            // the controls are shown being used only where the panels sit beside the map
+            const tourTeaches = () => !_dockMQ.matches;
 
             class TourStopped extends Error {}
             function tourCheck(run) {
@@ -5595,6 +5683,12 @@ self.onmessage=async({data})=>{
             async function tourWait(run, ms) {
                 await new Promise((r) => setTimeout(r, ms));
                 tourCheck(run);
+            }
+            function tourProgress() {
+                if (!tourOn) return;
+                const f = Math.min(1, (performance.now() - tourT0) / TOUR_MS);
+                document.querySelector("#tour-progress i").style.transform = `scaleX(${f})`;
+                requestAnimationFrame(tourProgress);
             }
             // the camera moves are part of the film: essential, so reduced motion doesn't
             // drop them; under reduced motion the tour cuts from shot to shot instead
@@ -5620,6 +5714,28 @@ self.onmessage=async({data})=>{
                 if (text) el.textContent = text;
                 el.classList.toggle("on", !!text);
             }
+            // which controls are on screen: "legend", "tl" (the timeline), "search" and
+            // "modes" (the night view and timeline buttons beside the search)
+            function tourShow(...parts) {
+                for (const p of ["legend", "tl", "search", "modes"]) document.body.classList.toggle("tour-" + p, parts.includes(p));
+            }
+            // the pointer goes to a control and clicks it (press: the click is real)
+            async function tourClick(run, el, press = true) {
+                const c = document.getElementById("tour-cursor");
+                const r = el.getBoundingClientRect();
+                c.style.setProperty("--x", `${r.left + Math.min(r.width / 2, 40)}px`);
+                c.style.setProperty("--y", `${r.top + r.height * 0.55}px`);
+                c.classList.add("on");
+                await tourWait(run, 700);
+                c.classList.remove("click");
+                void c.offsetWidth;
+                c.classList.add("click");
+                if (press) el.click();
+                await tourWait(run, 350);
+            }
+            function tourPointerOff() {
+                document.getElementById("tour-cursor").classList.remove("on");
+            }
             // the legal forms on show, by label (null: all of them), like the legend's toggles
             function tourForms(labels) {
                 activeLabels.clear();
@@ -5630,6 +5746,25 @@ self.onmessage=async({data})=>{
                     el.setAttribute("aria-checked", on ? "true" : "false");
                 });
                 refreshLayer();
+            }
+            // night view on or off, its button clicked in sight: the legend's picks only
+            // read in the forms' colours, with night view off
+            async function tourNight(run, on, ...parts) {
+                if (nightView === on) return;
+                if (!tourTeaches()) { document.getElementById("btn-night-view").click(); return; }
+                tourShow("modes", ...parts);
+                await tourWait(run, 300);
+                await tourClick(run, document.getElementById("btn-night-view"));
+                tourPointerOff();
+                await tourWait(run, 300);
+            }
+            // picked in the legend, in sight: none then each form, or all of them
+            async function tourPickForms(run, labels) {
+                if (!tourTeaches()) { tourForms(labels); return; }
+                await tourWait(run, 300);
+                await tourClick(run, document.getElementById(labels ? "btn-deselect-all" : "btn-select-all"));
+                for (const label of labels || []) await tourClick(run, document.querySelector(`.legend-item[data-label="${CSS.escape(label)}"]`));
+                tourPointerOff();
             }
             // lamps of a canton and some legal forms that opened (or closed) between two days
             function tourCount(cantonId, labels, d0, d1, field = "o16") {
@@ -5644,6 +5779,8 @@ self.onmessage=async({data})=>{
             // run the timeline from one day to another in ms of wall time, the flashes
             // timed on the wall clock whatever the pace
             function tourPlay(run, d0, d1, ms) {
+                const play = document.getElementById("tl-play").firstElementChild;
+                play.textContent = "❚❚";
                 return new Promise((resolve, reject) => {
                     const t0 = performance.now();
                     let lastNow = t0, lastT = tlTimeAt(d0);
@@ -5664,11 +5801,18 @@ self.onmessage=async({data})=>{
                         if (f < 1) { requestAnimationFrame(frame); return; }
                         tlMoving = false;
                         tlRate = TL_SPEED;
+                        play.textContent = "▶";
                         redrawLayer();
                         resolve();
                     };
                     requestAnimationFrame(frame);
                 });
+            }
+            function tourAt(day) {
+                tlDay = day;
+                tlT = tlTimeAt(day);
+                redrawLayer();
+                tlUpdateUi();
             }
             async function tourTimeline(run, on, day) {
                 await setTimeline(on, day);
@@ -5679,6 +5823,10 @@ self.onmessage=async({data})=>{
             async function tourSearch(run, text, ms) {
                 const input = document.getElementById("search-input");
                 input.value = "";
+                if (tourTeaches()) {
+                    await tourClick(run, input, false);
+                    tourPointerOff();
+                }
                 for (let i = 1; i <= text.length; i++) {
                     input.value = text.slice(0, i);
                     input.dispatchEvent(new Event("input"));
@@ -5706,6 +5854,7 @@ self.onmessage=async({data})=>{
                     day: tlDay,
                     night: nightView,
                     search: document.getElementById("search-input").value,
+                    legendCollapsed: document.getElementById("legend").classList.contains("collapsed"),
                 };
                 hideTooltip();
                 closeResults();
@@ -5722,6 +5871,9 @@ self.onmessage=async({data})=>{
                     tl = await (tlLoading ??= loadTimeline());
                     tourCheck(run);
                     if (!nightView) document.getElementById("btn-night-view").click();
+                    document.getElementById("legend").classList.remove("collapsed");
+                    tourT0 = performance.now();
+                    tourProgress();
                     await tourScenes(run);
                 } catch (e) {
                     if (!(e instanceof TourStopped)) console.error("tour", e);
@@ -5732,58 +5884,70 @@ self.onmessage=async({data})=>{
 
             async function tourScenes(run) {
                 const from = tourDay("2016-01-01"), to = tl.lastDay;
-                const GE = ["Verein", "Stiftung"], ZH = ["Aktiengesellschaft", "GmbH / SARL"], BE = ["Einzelunternehmen"];
+                const GE = ["Stiftung", "Verein"], ZH = ["Aktiengesellschaft", "GmbH / SARL"], BE = ["Einzelunternehmen"];
 
-                // 0 · the country tonight (0–4.5 s)
+                // 0 · the country tonight
                 await tourTimeline(run, false);
                 tourForms(null);
+                tourShow();
                 map.jumpTo(TOUR_HOME);
                 tourCaption("cantography", "Every Swiss company, lit at its door.");
                 tourDrift({ zoom: 7.6, pitch: 30, bearing: -8 }, 4500);
                 await tourWait(run, 4500);
 
-                // 1 · Geneva: associations and foundations, ten years (4.5–14 s)
-                tourCaption("", "");
-                tourFly({ center: [6.143, 46.203], zoom: 12.4, pitch: 60, bearing: -25 }, 2500);
-                tourForms(GE);
+                // 1 · Geneva: associations and foundations, ten years, picked in the legend
+                tourCaption("night view", "Night view off: each legal form in its own colour.");
+                tourFly({ center: [6.143, 46.203], zoom: 12.4, pitch: 60, bearing: -25 }, 2600);
                 await tourTimeline(run, true, from);
-                await tourWait(run, 2500);
+                await tourNight(run, false);
+                tourShow("legend");
+                tourCaption("legend", "Pick legal forms in the legend.");
+                await tourPickForms(run, GE);
+                await tourWait(run, 300);
                 tourCaption("Geneva · 2016–2026", `${tourNum(tourCount("GE", GE, from, to))} associations and foundations opened in ten years.`);
                 tourDrift({ bearing: 5, zoom: 12.8 }, 7000);
                 await tourPlay(run, from, to, 7000);
 
-                // 2 · Zurich: AGs and GmbHs, from another side (14–23.5 s)
+                // 2 · Zurich: AGs and GmbHs, from another side
                 tourCaption("", "");
                 tourYear("");
-                tourFly({ center: [8.537, 47.372], zoom: 13.1, pitch: 66, bearing: 40 }, 2500);
-                tourForms(ZH);
-                tlDay = from; tlT = tlTimeAt(from); redrawLayer();
-                await tourWait(run, 2500);
+                tourFly({ center: [8.537, 47.372], zoom: 13.1, pitch: 66, bearing: 40 }, 2600);
+                tourAt(from);
+                await tourPickForms(run, ZH);
+                await tourWait(run, 300);
                 tourCaption("Zurich · 2016–2026", `${tourNum(tourCount("ZH", ZH, from, to))} new AGs and GmbHs in ten years.`);
                 tourDrift({ bearing: 10, zoom: 13.4 }, 7000);
                 await tourPlay(run, from, to, 7000);
 
-                // 3 · Bern: sole proprietors, straight down, then tilting (23.5–32 s)
+                // 3 · Bern: sole proprietors, straight down, then tilting; the timeline's play
                 tourCaption("", "");
                 tourYear("");
-                tourFly({ center: [7.447, 46.948], zoom: 12.6, pitch: 0, bearing: 0 }, 2500);
-                tourForms(BE);
-                tlDay = from; tlT = tlTimeAt(from); redrawLayer();
-                await tourWait(run, 2500);
+                tourFly({ center: [7.447, 46.948], zoom: 12.6, pitch: 0, bearing: 0 }, 2600);
+                tourAt(from);
+                await tourPickForms(run, BE);
+                tourShow("legend", "tl");
+                tourCaption("timeline", "Play the timeline: every opening and closing since 2018.");
+                await tourWait(run, 500);
+                if (tourTeaches()) {
+                    await tourClick(run, document.getElementById("tl-play"), false);
+                    tourPointerOff();
+                }
                 tourCaption("Bern · 2016–2026", `${tourNum(tourCount("BE", BE, from, to))} sole proprietors set up shop.`);
                 tourDrift({ pitch: 55, bearing: -20, zoom: 13 }, 6000);
                 await tourPlay(run, from, to, 6000);
 
-                // 4 · Vaud: the closings around the pandemic, slower, all forms (32–40.5 s)
+                // 4 · Vaud: the closings around the pandemic, slower, all forms
                 const y19 = [tourDay("2019-01-01"), tourDay("2019-12-31")], y20 = [tourDay("2020-01-01"), tourDay("2020-12-31")];
                 const c19 = tourCount("VD", null, ...y19, "c16"), c20 = tourCount("VD", null, ...y20, "c16");
                 const change = Math.round(Math.abs(1 - c20 / c19) * 100);
                 tourCaption("", "");
                 tourYear("");
-                tourFly({ center: [6.632, 46.522], zoom: 11.6, pitch: 50, bearing: -30 }, 2500);
+                tourFly({ center: [6.632, 46.522], zoom: 11.6, pitch: 50, bearing: -30 }, 2600);
+                tourAt(y19[0]);
                 tourForms(null);
-                tlDay = y19[0]; tlT = tlTimeAt(y19[0]); redrawLayer();
-                await tourWait(run, 2500);
+                await tourNight(run, true, "tl");
+                tourShow("tl");
+                await tourWait(run, 600);
                 tourCaption(
                     "Vaud · 2019–2021",
                     c20 < c19
@@ -5793,22 +5957,24 @@ self.onmessage=async({data})=>{
                 tourDrift({ bearing: -50, zoom: 11.9 }, 6000);
                 await tourPlay(run, y19[0], tourDay("2021-12-31"), 6000);
 
-                // 5 · a search: one company among all of them (40.5–47 s)
+                // 5 · a search: one company among all of them
                 tourYear("");
                 tourCaption("", "");
+                tourShow();
                 await tourTimeline(run, false);
                 const total = Object.values(cantonTotals).reduce((a, b) => a + b, 0);
-                document.body.classList.add("tour-search");
+                tourShow("search");
                 tourCaption("search", `Any of ${tourNum(total)} companies, at its address.`);
                 await tourSearch(run, "Nestlé Suisse", 1400);
                 await tourWait(run, 3600);
 
-                // 6 · back to the whole country (47–51 s)
+                // 6 · back to the whole country
                 hideTooltip();
-                document.body.classList.remove("tour-search");
+                tourShow();
                 tourFly(TOUR_HOME, 3500);
                 tourCaption("cantography.ch", "Switzerland, one company at a time.");
                 await tourWait(run, 4000);
+                document.querySelector("#tour-progress i").style.transform = "scaleX(1)";
             }
 
             function stopTour() {
@@ -5820,6 +5986,8 @@ self.onmessage=async({data})=>{
                 map.stop();
                 const s = tourSaved;
                 tourForms([...s.labels]);
+                document.getElementById("legend").classList.toggle("collapsed", s.legendCollapsed);
+                document.getElementById("tl-play").firstElementChild.textContent = "▶";
                 if (s.night !== nightView) document.getElementById("btn-night-view").click();
                 setTimeline(s.timelineOn, s.timelineOn ? s.day : undefined).then(() => tlSetPlaying(false));
                 const input = document.getElementById("search-input");
@@ -5829,10 +5997,15 @@ self.onmessage=async({data})=>{
                 hideTooltip();
                 tourCaption("", "");
                 tourYear("");
+                tourPointerOff();
                 const ui = document.getElementById("tour");
                 ui.classList.remove("on");
-                document.body.classList.remove("touring", "tour-search");
-                setTimeout(() => { if (!tourOn) ui.hidden = true; }, 900);
+                document.body.classList.remove("touring", "tour-legend", "tour-tl", "tour-search");
+                setTimeout(() => {
+                    if (tourOn) return;
+                    ui.hidden = true;
+                    document.querySelector("#tour-progress i").style.transform = "scaleX(0)";
+                }, 900);
                 document.getElementById("tour-open").focus({ preventScroll: true });
                 updateUrl();
             }
