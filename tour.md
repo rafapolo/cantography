@@ -10,7 +10,9 @@ Este arquivo descreve o que acontece em cada cena. Para mudar algo, edite aqui e
 - **Textos.** Em inglês, qualquer que seja o idioma da página. A legenda tem duas partes: um rótulo pequeno em cima (*kicker*) e a frase.
 - **Números.** São contados no navegador a partir da linha do tempo; nenhum é fixo no código.
 - **Cores.** A legenda só faz sentido com o modo noturno **desligado**: cada forma jurídica aparece na sua cor. O modo noturno volta em Vaud, onde o vermelho dos fechamentos é o que importa.
-- **Cursor.** Só aparece em telas largas (acima de 980 px). No celular o tour aplica os filtros sem mostrar os cliques.
+- **Cursor.** Só aparece em telas largas (acima de 980 px). No celular o tour aplica os filtros sem mostrar os cliques, mas espera o tempo que eles levariam: a câmera pousa antes de girar e o tour dura o mesmo.
+- **Celular.** O painel da linha do tempo fica escondido; a data grande no alto à esquerda marca o tempo. A abertura e o fim mostram a Suíça inteira, com o zoom que couber na largura. O cartão da busca abre logo abaixo da busca, longe da legenda.
+- **Sair.** O botão **✕ esc** fica no canto de cima à direita, na faixa preta.
 - **Movimento reduzido.** Com `prefers-reduced-motion`, a câmera corta de uma tomada para a outra em vez de voar.
 
 ## Cenas
