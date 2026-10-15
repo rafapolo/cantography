@@ -1,45 +1,45 @@
-# Tour: roteiro
+# Tour: the script
 
-O tour é um passeio de câmera de ~57 s feito para o vídeo do Swiss Viz Awards. Ele também mostra como usar o site: um cursor desenhado clica nos controles de verdade. Para tocar, use o botão **▶ tour** nos chips de baixo à direita, ou abra `?tour=1`, que começa sozinho quando o mapa termina de carregar. **Esc** ou **✕ esc** interrompem o tour e devolvem filtros, linha do tempo e modo noturno ao estado de antes.
+The tour is a ~57 s camera ride made for the Swiss Viz Awards video. It also shows how to use the site: a drawn pointer clicks the real controls. To play it, use the **▶ tour** button among the chips at the bottom right, or open `?tour=1`, which starts on its own once the map has loaded. **Esc** or **✕ esc** stop the tour and put the filters, the timeline and night view back the way they were.
 
-Este arquivo descreve o que acontece em cada cena. Para mudar algo, edite aqui e peça a mudança no código: as cenas ficam em `tourScenes()`, no `index.html`.
+This file describes what happens in each scene. To change something, edit it here and ask for the change in the code: the scenes live in `tourScenes()`, in `index.html`.
 
-## Regras gerais
+## General rules
 
-- **Quadro.** Faixas pretas de cinema em 2,39:1 (no máximo 16% da tela cada) e uma barra de progresso fina na borda da faixa de baixo. Toda a interface fica escondida, menos o controle que a cena está ensinando.
-- **Textos.** Em inglês, qualquer que seja o idioma da página. A legenda tem duas partes: um rótulo pequeno em cima (*kicker*) e a frase.
-- **Números.** São contados no navegador a partir da linha do tempo; nenhum é fixo no código.
-- **Cores.** A legenda só faz sentido com o modo noturno **desligado**: cada forma jurídica aparece na sua cor. O modo noturno volta em Vaud, onde o vermelho dos fechamentos é o que importa.
-- **Cursor.** Só aparece em telas largas (acima de 980 px). No celular o tour aplica os filtros sem mostrar os cliques, mas espera o tempo que eles levariam: a câmera pousa antes de girar e o tour dura o mesmo.
-- **Celular.** O painel da linha do tempo fica escondido; a data grande no alto à esquerda marca o tempo. A abertura e o fim mostram a Suíça inteira, com o zoom que couber na largura. O cartão da busca abre logo abaixo da busca, longe da legenda.
-- **Telas baixas.** A legenda fica dentro do quadro e rola até o item antes do clique; enquanto ela aparece, a legenda do vídeo fica do lado do mapa.
-- **Sair.** O botão **✕ esc** fica no canto de cima à direita, na faixa preta.
-- **Movimento reduzido.** Com `prefers-reduced-motion`, a câmera corta de uma tomada para a outra em vez de voar.
+- **Frame.** Black cinema bars at 2.39:1 (at most 16% of the screen each) and a thin progress line on the bottom bar's edge. The whole interface is hidden, except the control the scene is teaching.
+- **Text.** In English, whatever the page's language. The caption has two parts: a small label on top (the *kicker*) and the line.
+- **Numbers.** Counted in the browser from the timeline; none is hard-coded.
+- **Colours.** The legend only makes sense with night view **off**: each legal form shows in its own colour. Night view comes back in Vaud, where the red of the closures is what matters.
+- **Pointer.** Only on wide screens (above 980 px). On phones the tour applies the filters without showing the clicks, but waits the time they would take: the camera lands before it turns, and the tour lasts the same.
+- **Phones.** The timeline panel stays hidden; the big date at the top left keeps the time. The opening and the end show the whole of Switzerland, at whatever zoom fits the width. The search card opens just under the search, clear of the caption.
+- **Short screens.** The legend stays inside the frame and scrolls to the item before the click; while it shows, the caption keeps to the map's side of it.
+- **Leaving.** The **✕ esc** button sits in the top right corner, on the black bar.
+- **Reduced motion.** With `prefers-reduced-motion`, the camera cuts from shot to shot instead of flying.
 
-## Cenas
+## Scenes
 
-Os tempos foram medidos em 2026-10-15, numa janela de 1440×810.
+Times measured on 2026-10-15, in a 1440×810 window.
 
-| # | tempo | lugar e câmera | o que acontece | rótulo · frase |
+| # | time | place and camera | what happens | kicker · line |
 |---|---|---|---|---|
-| 0 | 0–5 s | Suíça inteira (zoom 7,15), de cima; desce devagar até zoom 7,6, inclinação 30° | mapa de hoje, modo noturno, todas as formas | **cantography** · *Every Swiss company, lit at its door.* |
-| 1a | 5–7 s | voa até Genebra (zoom 12,4, inclinação 60°, rumo −25°) | a barra de busca aparece e o cursor clica no botão do modo noturno (avião), que desliga | **night view** · *Night view off: each legal form in its own colour.* |
-| 1b | 7–10,5 s | Genebra | a legenda aparece; o cursor clica em **Deselect all**, depois em **Foundation** e **Association** | **legend** · *Pick legal forms in the legend.* |
-| 1c | 10,5–17,5 s | Genebra, girando devagar (rumo até 5°, zoom 12,8) | a linha do tempo corre de jan/2016 até hoje em 7 s; o ano grande aparece no alto à esquerda | **Geneva · 2016–2026** · *N associations and foundations opened in ten years.* (N = 2.009) |
-| 2 | 17,5–28,5 s | voa até o centro de Zurique (zoom 13,1, inclinação 66°, rumo 40°), depois gira no sentido contrário | cursor: **Deselect all**, **Corporation (AG)**, **LLC / SARL**; linha do tempo de 2016 até hoje em 7 s | **Zurich · 2016–2026** · *N new AGs and GmbHs in ten years.* (N = 50.769) |
-| 3a | 28,5–31 s | voa até Berna, vista de cima (zoom 12,6) | cursor: **Deselect all**, **Sole Proprietorship**; a barra da linha do tempo aparece embaixo | **timeline** · *Play the timeline: every opening and closing since 2018.* |
-| 3b | 31–38,5 s | Berna, inclinando até 55° | o cursor aponta o ▶ da linha do tempo, que vira ❚❚; de 2016 até hoje em 6 s | **Bern · 2016–2026** · *N sole proprietors set up shop.* (N = 15.231) |
-| 4 | 38,5–47 s | voa até Lausanne (zoom 11,6, inclinação 50°, rumo −30°), gira para −50° | todas as formas; o cursor religa o modo noturno; linha do tempo de jan/2019 a dez/2021 em 6 s, com os fechamentos em vermelho | **Vaud · 2019–2021** · *In 2020 closures fell N%: the year of COVID loans and a pause on debt collection.* (N = 25; se os fechamentos subissem, a frase diria *rose*) |
-| 5 | 47–53,5 s | Vevey | some a linha do tempo e volta o mapa de hoje; o cursor clica na busca, "Nestlé Suisse" é digitado letra por letra (1,4 s), o primeiro resultado abre e o cartão fica fixado | **search** · *Any of N companies, at its address.* (N = 795.271) |
-| 6 | 53,5–57 s | volta voando para a Suíça inteira (3,5 s) | o cartão fecha | **cantography.ch** · *Switzerland, one company at a time.* |
+| 0 | 0–5 s | all of Switzerland (zoom 7.15), from above; slowly closes in to zoom 7.6, pitch 30° | today's map, night view, all forms | **cantography** · *Every Swiss company, lit at its door.* |
+| 1a | 5–7 s | flies to Geneva (zoom 12.4, pitch 60°, bearing −25°) | the search bar shows and the pointer clicks the night view button (the plane), which turns off | **night view** · *Night view off: each legal form in its own colour.* |
+| 1b | 7–10.5 s | Geneva | the legend shows; the pointer clicks **Deselect all**, then **Foundation** and **Association** | **legend** · *Pick legal forms in the legend.* |
+| 1c | 10.5–17.5 s | Geneva, slowly turning (bearing to 5°, zoom 12.8) | the timeline runs from Jan 2016 to today in 7 s; the big year shows at the top left | **Geneva · 2016–2026** · *N associations and foundations opened in ten years.* (N = 2,009) |
+| 2 | 17.5–28.5 s | flies to central Zurich (zoom 13.1, pitch 66°, bearing 40°), then turns the other way | pointer: **Deselect all**, **Corporation (AG)**, **LLC / SARL**; timeline from 2016 to today in 7 s | **Zurich · 2016–2026** · *N new AGs and GmbHs in ten years.* (N = 50,769) |
+| 3a | 28.5–31 s | flies to Bern, seen from straight above (zoom 12.6) | pointer: **Deselect all**, **Sole Proprietorship**; the timeline bar shows at the bottom | **timeline** · *Play the timeline: every opening and closing since 2018.* |
+| 3b | 31–38.5 s | Bern, tilting to 55° | the pointer goes to the timeline's ▶, which turns to ❚❚; from 2016 to today in 6 s | **Bern · 2016–2026** · *N sole proprietors set up shop.* (N = 15,231) |
+| 4 | 38.5–47 s | flies to Lausanne (zoom 11.6, pitch 50°, bearing −30°), turns to −50° | all forms; the pointer turns night view back on; timeline from Jan 2019 to Dec 2021 in 6 s, closures in red | **Vaud · 2019–2021** · *In 2020 closures fell N%: the year of COVID loans and a pause on debt collection.* (N = 25; had closures gone up, the line would say *rose*) |
+| 5 | 47–53.5 s | Vevey | the timeline goes and today's map comes back; the pointer clicks the search, "Nestlé Suisse" is typed one letter at a time (1.4 s), the first hit opens and its card stays pinned | **search** · *Any of N companies, at its address.* (N = 795,271) |
+| 6 | 53.5–57 s | flies back to all of Switzerland (3.5 s) | the card closes | **cantography.ch** · *Switzerland, one company at a time.* |
 
-## De onde vêm os números
+## Where the numbers come from
 
-- **Aberturas (Genebra, Zurique, Berna):** empresas daquele cantão e daquelas formas jurídicas com data de abertura entre 1/1/2016 e o último dia da linha do tempo. Antes de 2018 só entram as empresas que existem hoje ou que foram canceladas desde então: são as datas de inscrição do registro cantonal.
-- **Fechamentos em Vaud:** encerramentos publicados no SHAB em 2020, comparados com 2019. No país inteiro a queda foi de 8%, segundo os dados do SHAB (2019: 31.261; 2020: 28.680). Os empréstimos covid e a suspensão das cobranças (Rechtsstillstand, de 19/3 a 19/4/2020) são o contexto da frase, não uma causa provada.
-- **Total da busca:** soma das empresas de hoje nos 26 cantões.
+- **Openings (Geneva, Zurich, Bern):** companies of that canton and those legal forms whose opening date falls between 1 Jan 2016 and the timeline's last day. Before 2018 only companies that exist today or were deleted since are counted: those are the cantonal register's entry dates.
+- **Closures in Vaud:** deletions published in the SHAB in 2020, compared with 2019. Across the whole country they fell 8%, by the SHAB data (2019: 31,261; 2020: 28,680). The COVID loans and the suspension of debt collection (Rechtsstillstand, 19 March to 19 April 2020) are the line's context, not a proven cause.
+- **Search total:** the sum of today's companies in the 26 cantons.
 
-## Ideias que ficaram de fora
+## Ideas left out
 
-- Um mergulho no endereço com mais empresas registradas (Zug, Baar).
-- De 1883 até hoje: a Suíça inteira se acendendo desde o primeiro registro comercial.
+- A dive into the address with the most registered companies (Zug, Baar).
+- From 1883 to today: all of Switzerland lighting up since the first commercial register entry.
