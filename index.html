@@ -5618,7 +5618,7 @@ self.onmessage=async({data})=>{
                 const fit = map.cameraForBounds(SWISS_BOUNDS, { padding: 12 });
                 return { ...TOUR_HOME, zoom: Math.min(TOUR_HOME.zoom, fit?.zoom ?? TOUR_HOME.zoom) };
             }
-            const TOUR_MS = 75000; // the scenes' length, for the progress bar
+            const TOUR_MS = 74000; // the scenes' length, for the progress bar
             let tourOn = false;
             let tourRun = 0; // bumped on every start and stop: a stale scene ends at its next await
             let tourSaved = null;
@@ -5781,7 +5781,7 @@ self.onmessage=async({data})=>{
             // timed on the wall clock whatever the pace; with clock, paced on the
             // timeline's own screen time, so 1883–2018 does not take most of it. Played
             // backwards the lamps just go out: no flashes
-            function tourPlay(run, d0, d1, ms, { clock = false, flash = true } = {}) {
+            function tourPlay(run, d0, d1, ms, { clock = false } = {}) {
                 const play = document.getElementById("tl-play").firstElementChild;
                 play.textContent = "❚❚";
                 return new Promise((resolve, reject) => {
@@ -5789,8 +5789,8 @@ self.onmessage=async({data})=>{
                     const t0T = tlTimeAt(d0), t1T = tlTimeAt(d1);
                     let lastNow = t0, lastT = t0T;
                     tlMoving = true;
-                    // backwards, or without flash, no lamp flashes: they only go out or come on
-                    const still = d1 < d0 || !flash;
+                    // backwards no lamp flashes: they only go out
+                    const still = d1 < d0;
                     if (still) tlRate = 0;
                     const frame = (now) => {
                         if (run !== tourRun) { tlMoving = false; reject(new TourStopped()); return; }
@@ -6078,26 +6078,24 @@ self.onmessage=async({data})=>{
                 tourOrbit(run, { zoom: 13.5 }, 360, 6000);
                 await tourPlay(run, from, to, 6000);
 
-                // 7 · the whole country from above in 2000, rewound to the first entry, then
-                // all of it lit again as it is today
+                // 7 · the whole country from above, rewound from 2018 to 1909: before 2018 only
+                // openings are known, so going back the lamps only go out, none pops back on.
+                // Then the timeline goes and the whole country is lit again, in night view
                 tourCaption("", "");
                 tourYear("");
                 tourShow();
                 tourForms(null);
-                // the lamps going out read best in night view: turned on unseen
                 if (!nightView) document.getElementById("btn-night-view").click();
-                const y2000 = tourDay("2000-01-01");
-                await tourTimeline(run, true, y2000);
+                const y2018 = tourDay("2018-01-01"), y1909 = tourDay("1909-01-01");
+                await tourTimeline(run, true, y2018);
                 tourFly(home, 2000);
                 await tourLanded(run);
-                tourCaption(`2000 → ${new Date(TL_EPOCH + tl.firstDay * 864e5).getUTCFullYear()}`, "Navigate in time.");
-                await tourPlay(run, y2000, tl.firstDay, 4500, { clock: true });
-                // and all of it fades back in, up to today, without a flash
-                tourCaption("cantography.ch", "Switzerland, one company at a time.");
-                await tourPlay(run, tl.firstDay, tl.lastDay, 1500, { clock: true, flash: false });
+                tourCaption("2018 → 1909", "Navigate in time.");
+                await tourPlay(run, y2018, y1909, 4000, { clock: true });
                 tourYear("");
+                tourCaption("cantography.ch", "Switzerland, one company at a time.");
                 await tourTimeline(run, false);
-                await tourWait(run, 2000);
+                await tourWait(run, 3000);
                 document.querySelector("#tour-progress i").style.transform = "scaleX(1)";
             }
 
