@@ -1,6 +1,6 @@
 # Tour: the script
 
-The tour is a ~75 s camera ride made for the Swiss Viz Awards video. It also shows how to use the site: a drawn pointer clicks the real controls. To play it, use the **▶ tour** button among the chips at the bottom right, or open `?tour=1`, which starts on its own once the map has loaded. **Esc** or **✕ esc** stop the tour and put the filters, the timeline and night view back the way they were.
+The tour is a ~75 s camera ride made for the Swiss Viz Awards video. It also shows how to use the site: a drawn pointer clicks the real controls. To play it, use the **▶ tour** button among the chips at the bottom right, or open `?tour=1`, which starts on its own once the map has loaded; add `&t=<seconds>` (e.g. `?tour=1&t=60`) to start about there, the scenes before it run through at once. **Esc** or **✕ esc** stop the tour and put the filters, the timeline and night view back the way they were.
 
 This file describes what happens in each scene. To change something, edit it here and ask for the change in the code: the scenes live in `tourScenes()`, in `index.html`.
 
@@ -33,8 +33,8 @@ Times measured on 2026-10-15, in a 1030×1037 window, then shortened by 2.9 s.
 | 4 | 39.5–48.1 s | flies to Lausanne (zoom 11.6, pitch 50°, bearing −30°), turns to −50° | all forms; the pointer turns night view back on; timeline from Jan 2019 to Dec 2021 in 6 s, closures in red | **Vaud · 2019–2021** · *In 2020 closures fell N%: the year of COVID loans and a pause on debt collection.* (N = 25; had closures gone up, the line would say *rose*) |
 | 5 | 48.1–54.2 s | Vevey | the timeline goes and today's map comes back; the pointer clicks the search, "Nestlé Suisse" is typed one letter at a time (1.4 s), the first hit opens and its card stays pinned | **search** · *Find any of N companies on the map.* (N = 795,271) |
 | 6 | 54.2–64.6 s | flies low over Lake Lugano, south of the town (zoom 13, pitch 72°, bearing −12°), then glides in over the water to the centre in 6 s (zoom 13.9, pitch 64°) | the card closes and the timeline comes back; the pointer turns night view off, then **Deselect all**, **Foreign Branch**; timeline from 2016 to today in 6 s | **Lugano · 2016–2026** · *N foreign companies opened a branch in Ticino, M were closed.* (N = 271, M = 386) |
-| 7a | 64.6–71.6 s | flies back to all of Switzerland (2 s), from above | all forms again; night view turns on unseen; the map shows Jan 2018, then the timeline rewinds to 1887 in 4 s and holds there 1 s, the lamps going out one by one (no flashes; before 2018 only openings are known, so no closed company lights up again) | **2018 → 1887** · *Navigate in time.* |
-| 7b | 71.6–74.6 s | all of Switzerland | the timeline goes and the whole country is lit again, in night view | **cantography.ch** · *Switzerland, one company at a time.* |
+| 7a | 64.6–71.6 s | flies to all of Switzerland, tilted to 45° (2 s), then turns slowly 30° | all forms; night view turns on unseen; the lamps grow to twice their size; the timeline runs from 1887 to today in 5 s, the lamps coming on in the order the companies opened (no flashes) | **1887 → 2026** · *Every company, lit in the order it opened.* |
+| 7b | 71.6–74.6 s | all of Switzerland, still turning | the timeline goes, the lamps ease back to their size; the country stays lit in night view | **cantography.ch** · *Switzerland, one company at a time.* |
 
 ## Where the numbers come from
 
@@ -46,4 +46,3 @@ Times measured on 2026-10-15, in a 1030×1037 window, then shortened by 2.9 s.
 ## Ideas left out
 
 - A dive into the address with the most registered companies (Zug, Baar).
-- From 1883 to today: all of Switzerland lighting up since the first commercial register entry. The tour only runs part of it backwards, from 2018 to 1887.
