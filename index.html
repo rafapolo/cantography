@@ -5781,7 +5781,7 @@ self.onmessage=async({data})=>{
             // timed on the wall clock whatever the pace; with clock, paced on the
             // timeline's own screen time, so 1883–2018 does not take most of it. Played
             // backwards the lamps just go out: no flashes
-            function tourPlay(run, d0, d1, ms, { clock = false } = {}) {
+            function tourPlay(run, d0, d1, ms, { clock = false, flash = true } = {}) {
                 const play = document.getElementById("tl-play").firstElementChild;
                 play.textContent = "❚❚";
                 return new Promise((resolve, reject) => {
@@ -5789,8 +5789,9 @@ self.onmessage=async({data})=>{
                     const t0T = tlTimeAt(d0), t1T = tlTimeAt(d1);
                     let lastNow = t0, lastT = t0T;
                     tlMoving = true;
-                    // backwards no lamp flashes: they only go out
-                    if (d1 < d0) tlRate = 0;
+                    // backwards, or without flash, no lamp flashes: they only go out or come on
+                    const still = d1 < d0 || !flash;
+                    if (still) tlRate = 0;
                     const frame = (now) => {
                         if (run !== tourRun) { tlMoving = false; reject(new TourStopped()); return; }
                         const f = Math.min(1, (now - t0) / ms);
@@ -5803,7 +5804,7 @@ self.onmessage=async({data})=>{
                         }
                         const dt = (now - lastNow) / 1000;
                         // screen seconds per wall second, smoothed: the flash length follows it
-                        if (dt > 0) tlRate = tlRate * 0.8 + (Math.max(0, tlT - lastT) / dt) * 0.2;
+                        if (dt > 0 && !still) tlRate = tlRate * 0.8 + (Math.max(0, tlT - lastT) / dt) * 0.2;
                         lastNow = now;
                         lastT = tlT;
                         tourYear(tourDate(tlDay));
@@ -5979,8 +5980,8 @@ self.onmessage=async({data})=>{
                 const home = tourHome();
                 map.jumpTo(home);
                 tourCaption("cantography", "Every Swiss company, seen in a new light.");
-                tourDrift({ zoom: home.zoom + 0.45, pitch: 30, bearing: -8 }, 3500);
-                await tourWait(run, 3500);
+                tourDrift({ zoom: home.zoom + 0.45, pitch: 30, bearing: -8 }, 3000);
+                await tourWait(run, 3000);
 
                 // 1 · Geneva: associations and foundations, ten years, picked in the legend
                 tourCaption("night view", "Night view off: each legal form in its own colour.");
@@ -5988,15 +5989,15 @@ self.onmessage=async({data})=>{
                 await tourTimeline(run, true, from);
                 await tourNight(run, false);
                 // time to read the colours before the legend takes over
-                await tourWait(run, 1000);
+                await tourWait(run, 2000);
                 tourShow("legend");
                 tourCaption("legend", "Pick legal forms in the legend.");
                 await tourPickForms(run, GE);
                 await tourWait(run, 300);
                 tourCaption("Geneva · 2016–2026", `${tourNum(tourCount("GE", GE, from, to))} associations and foundations opened in ten years.`);
                 await tourLanded(run);
-                tourDrift({ bearing: 5, zoom: 12.8 }, 7000);
-                await tourPlay(run, from, to, 7000);
+                tourDrift({ bearing: 5, zoom: 12.8 }, 6500);
+                await tourPlay(run, from, to, 6500);
 
                 // 2 · Zurich: AGs and GmbHs, from another side
                 tourCaption("", "");
@@ -6055,7 +6056,7 @@ self.onmessage=async({data})=>{
                 await tourTimeline(run, false);
                 const total = Object.values(cantonTotals).reduce((a, b) => a + b, 0);
                 tourShow("search");
-                tourCaption("search", `Any of ${tourNum(total)} companies, at its address.`);
+                tourCaption("search", `Find any of ${tourNum(total)} companies on the map.`);
                 await tourSearch(run, "Nestlé Suisse", 1400);
                 await tourWait(run, 3000);
 
@@ -6074,8 +6075,8 @@ self.onmessage=async({data})=>{
                     `${tourNum(tourCount("TI", TI, from, to))} foreign companies opened a branch in Ticino, ${tourNum(tourCount("TI", TI, from, to, "c16"))} were closed.`,
                 );
                 await tourLanded(run);
-                tourOrbit(run, { zoom: 13.5 }, 360, 7000);
-                await tourPlay(run, from, to, 7000);
+                tourOrbit(run, { zoom: 13.5 }, 360, 6000);
+                await tourPlay(run, from, to, 6000);
 
                 // 7 · the whole country from above in 2000, rewound to the first entry, then
                 // all of it lit again as it is today
@@ -6087,15 +6088,16 @@ self.onmessage=async({data})=>{
                 if (!nightView) document.getElementById("btn-night-view").click();
                 const y2000 = tourDay("2000-01-01");
                 await tourTimeline(run, true, y2000);
-                tourFly(home, 2500);
+                tourFly(home, 2000);
                 await tourLanded(run);
                 tourCaption(`2000 → ${new Date(TL_EPOCH + tl.firstDay * 864e5).getUTCFullYear()}`, "Navigate in time.");
-                await tourPlay(run, y2000, tl.firstDay, 3000, { clock: true });
-                await tourWait(run, 400);
+                await tourPlay(run, y2000, tl.firstDay, 4500, { clock: true });
+                // and all of it fades back in, up to today, without a flash
+                tourCaption("cantography.ch", "Switzerland, one company at a time.");
+                await tourPlay(run, tl.firstDay, tl.lastDay, 1500, { clock: true, flash: false });
                 tourYear("");
                 await tourTimeline(run, false);
-                tourCaption("cantography.ch", "Switzerland, one company at a time.");
-                await tourWait(run, 3200);
+                await tourWait(run, 2000);
                 document.querySelector("#tour-progress i").style.transform = "scaleX(1)";
             }
 
