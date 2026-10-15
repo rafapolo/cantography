@@ -3341,12 +3341,25 @@ in float night_seed;
                 label.dataset.i18n = on ? "tiltOn" : "tiltOff";
                 label.textContent = t(label.dataset.i18n);
             }
-            function showNames() {
+            // only Switzerland's names: the labels carry no country, so they are kept
+            // within its outline (data/switzerland.json, scripts/switzerland_outline.py)
+            let swissOutline = null;
+            const nameFilters = new Map(); // layer → the style's own filter
+            async function showNames() {
                 if (!styleReady) return;
+                if (names && !swissOutline) {
+                    swissOutline = await fetch("data/switzerland.json").then((r) => r.json()).catch(() => null);
+                    if (!names) return;
+                }
                 for (const id of NAME_LAYERS) {
                     if (!map.getLayer(id)) continue;
                     map.setLayoutProperty(id, "visibility", names ? "visible" : "none");
                     if (!names) continue;
+                    if (swissOutline && !nameFilters.has(id)) {
+                        const own = map.getFilter(id);
+                        nameFilters.set(id, own);
+                        map.setFilter(id, own ? ["all", own, ["within", swissOutline]] : ["within", swissOutline]);
+                    }
                     map.setPaintProperty(id, "text-color", id.startsWith("place_city") ? "#cfc5b4" : "#8f8473");
                     map.setPaintProperty(id, "text-halo-color", ground().earth);
                     map.setPaintProperty(id, "text-halo-width", 1.2);
