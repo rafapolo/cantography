@@ -5618,7 +5618,7 @@ self.onmessage=async({data})=>{
                 const fit = map.cameraForBounds(SWISS_BOUNDS, { padding: 12 });
                 return { ...TOUR_HOME, zoom: Math.min(TOUR_HOME.zoom, fit?.zoom ?? TOUR_HOME.zoom) };
             }
-            const TOUR_MS = 74000; // the scenes' length, for the progress bar
+            const TOUR_MS = 75000; // the scenes' length, for the progress bar
             let tourOn = false;
             let tourRun = 0; // bumped on every start and stop: a stale scene ends at its next await
             let tourSaved = null;
@@ -6078,7 +6078,7 @@ self.onmessage=async({data})=>{
                 tourOrbit(run, { zoom: 13.5 }, 360, 6000);
                 await tourPlay(run, from, to, 6000);
 
-                // 7 · the whole country from above, rewound from 2018 to 1909: before 2018 only
+                // 7 · the whole country from above, rewound from 2018 to 1887: before 2018 only
                 // openings are known, so going back the lamps only go out, none pops back on.
                 // Then the timeline goes and the whole country is lit again, in night view
                 tourCaption("", "");
@@ -6086,12 +6086,13 @@ self.onmessage=async({data})=>{
                 tourShow();
                 tourForms(null);
                 if (!nightView) document.getElementById("btn-night-view").click();
-                const y2018 = tourDay("2018-01-01"), y1909 = tourDay("1909-01-01");
+                const y2018 = tourDay("2018-01-01"), y1887 = tourDay("1887-01-01");
                 await tourTimeline(run, true, y2018);
                 tourFly(home, 2000);
                 await tourLanded(run);
-                tourCaption("2018 → 1909", "Navigate in time.");
-                await tourPlay(run, y2018, y1909, 4000, { clock: true });
+                tourCaption("2018 → 1887", "Navigate in time.");
+                await tourPlay(run, y2018, y1887, 4000, { clock: true });
+                await tourWait(run, 1000);
                 tourYear("");
                 tourCaption("cantography.ch", "Switzerland, one company at a time.");
                 await tourTimeline(run, false);
