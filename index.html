@@ -647,46 +647,30 @@
                 background: var(--lamp);
                 box-shadow: 0 0 6px rgba(var(--spark-raw), 0.8), 0 0 14px rgba(var(--ember-raw), 0.9);
             }
-            /* the lock: open while the sliders follow the screen, closed and lit
-               while the look is held by hand */
-            .lock {
-                display: grid;
-                place-items: center;
-                width: 22px;
-                height: 22px;
-                margin: -4px 0 -4px -5px;
-                padding: 0;
-                border: 0;
+            /* "auto": lit while the sliders follow the screen, dim once they are
+               set by hand; a click hands them back to the screen */
+            .auto {
+                margin: -3px 0;
+                padding: 2px 8px;
+                border: 1px solid var(--hair);
+                border-radius: 10px;
                 background: none;
+                font: inherit;
+                letter-spacing: 0.06em;
                 color: var(--dim);
                 cursor: pointer;
+                user-select: none;
+                -webkit-user-select: none;
+                -webkit-tap-highlight-color: transparent;
+                transition: color 160ms, border-color 160ms, box-shadow 160ms;
             }
-            .lock svg {
-                width: 12px;
-                height: 12px;
-                fill: none;
-                stroke: currentColor;
-                stroke-width: 1.2;
-                stroke-linecap: round;
-                overflow: visible;
-            }
-            .lock .shackle {
-                transform-origin: 8px 5.5px;
-                transform: rotate(38deg);
-                transition: transform 160ms;
-            }
-            .lock[aria-pressed="true"] {
+            .auto[aria-pressed="true"] {
                 color: var(--lamp);
-                filter: drop-shadow(0 0 4px rgba(var(--spark-raw), 0.7));
-            }
-            .lock[aria-pressed="true"] rect {
-                fill: currentColor;
-            }
-            .lock[aria-pressed="true"] .shackle {
-                transform: none;
+                border-color: rgba(var(--ember-raw), 0.7);
+                box-shadow: 0 0 8px rgba(var(--ember-raw), 0.45);
             }
             @media (hover: hover) {
-                .lock:hover {
+                .auto:hover {
                     color: var(--lamp);
                 }
             }
@@ -2462,12 +2446,7 @@
                         <input type="range" id="knob-size" min="0.1" max="2.5" step="0.01" value="0.5" />
                     </label>
                     <div class="light-foot">
-                        <button type="button" id="knob-lock" class="lock" aria-pressed="false" data-i18n-aria="lightAuto" aria-label="Automatic light">
-                            <svg viewBox="0 0 12 12" aria-hidden="true">
-                                <rect x="2" y="5.5" width="8" height="5.5" rx="1" />
-                                <path class="shackle" d="M4 5.5V3.6a2 2 0 0 1 4 0v1.9" />
-                            </svg>
-                        </button>
+                        <button type="button" id="knob-auto" class="auto" aria-pressed="true" data-i18n-aria="lightAuto" aria-label="Automatic light">auto</button>
                         <span>zoom<output id="zoomval">–</output></span>
                     </div>
                 </div>
@@ -2595,8 +2574,8 @@
                     lightTitle: "Licht",
                     lightBrightness: "Helligkeit",
                     lightSize: "Größe",
-                    lightAuto: "Automatisches Licht: folgt dem Bildschirm. Klicken zum Sperren",
-                    lightLocked: "Gesperrt: das Licht bleibt so. Klicken, damit es wieder der Karte folgt",
+                    lightAuto: "Automatisches Licht: folgt dem Bildschirm. Klicken, um es so zu behalten",
+                    lightLocked: "Von Hand eingestellt. Klicken, damit das Licht wieder der Karte folgt",
                     collapse: "Einklappen",
                     country: "Schweiz",
                     tiltOn: "geneigt",
@@ -2669,8 +2648,8 @@
                     lightTitle: "Light",
                     lightBrightness: "brightness",
                     lightSize: "size",
-                    lightAuto: "Automatic light: follows what is on screen. Click to lock",
-                    lightLocked: "Locked: the light stays as it is. Click to let it follow the map again",
+                    lightAuto: "Automatic light: follows what is on screen. Click to keep it as it is",
+                    lightLocked: "Set by hand. Click to let the light follow the map again",
                     collapse: "Collapse panel",
                     country: "Switzerland",
                     tiltOn: "tilted",
@@ -3309,11 +3288,11 @@ in float night_seed;
             }
             function setLocked(on) {
                 knobsLocked = on;
-                const lock = document.getElementById("knob-lock");
-                lock.setAttribute("aria-pressed", on ? "true" : "false");
-                lock.dataset.i18nAria = on ? "lightLocked" : "lightAuto";
-                lock.setAttribute("aria-label", t(lock.dataset.i18nAria));
-                lock.title = t(lock.dataset.i18nAria);
+                const auto = document.getElementById("knob-auto");
+                auto.setAttribute("aria-pressed", on ? "false" : "true");
+                auto.dataset.i18nAria = on ? "lightLocked" : "lightAuto";
+                auto.setAttribute("aria-label", t(auto.dataset.i18nAria));
+                auto.title = t(auto.dataset.i18nAria);
             }
             function initLightPanel() {
                 const panel = document.getElementById("light-panel");
@@ -3336,9 +3315,9 @@ in float night_seed;
                         redrawLayer();
                     });
                 }
-                document.getElementById("knob-lock").addEventListener("click", () => {
+                document.getElementById("knob-auto").addEventListener("click", () => {
                     setLocked(!knobsLocked);
-                    // unlocked, the sliders go back to auto right away
+                    // back on auto, the sliders follow the screen right away
                     if (!knobsLocked) autoNow();
                 });
                 setLocked(false);
