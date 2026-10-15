@@ -5915,7 +5915,9 @@ self.onmessage=async({data})=>{
                 };
                 hideTooltip();
                 closeResults();
-                document.querySelectorAll(".panel.open, #light-panel.open").forEach((el) => el.classList.remove("open"));
+                // every sheet shut, its button too: none stays lit or open through the film
+                closeSheets();
+                document.querySelectorAll(".panel.open").forEach((el) => el.classList.remove("open"));
                 startSearchIndex();
                 const ui = document.getElementById("tour");
                 ui.hidden = false;
