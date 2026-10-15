@@ -5814,7 +5814,7 @@ self.onmessage=async({data})=>{
                     if (!(e instanceof TourStopped)) console.error("tour", e);
                     return;
                 }
-                stopTour();
+                stopTour(true);
             }
 
             async function tourScenes(run) {
@@ -5912,7 +5912,9 @@ self.onmessage=async({data})=>{
                 document.querySelector("#tour-progress i").style.transform = "scaleX(1)";
             }
 
-            function stopTour() {
+            // a tour that plays to the end leaves the legend open (on desktop, as the boot
+            // does); a stopped one puts it back the way it was
+            function stopTour(finished = false) {
                 if (!tourOn) return;
                 tourRun++;
                 tourOn = false;
@@ -5921,7 +5923,10 @@ self.onmessage=async({data})=>{
                 map.stop();
                 const s = tourSaved;
                 tourForms([...s.labels]);
-                document.getElementById("legend").classList.toggle("collapsed", s.legendCollapsed);
+                const legendShut = s.legendCollapsed && !(finished && window.innerWidth > 980);
+                document.getElementById("legend").classList.toggle("collapsed", legendShut);
+                if (window.innerWidth > 980)
+                    document.getElementById("toggle-legend").setAttribute("aria-expanded", legendShut ? "false" : "true");
                 document.getElementById("tl-play").firstElementChild.textContent = "▶";
                 if (s.night !== nightView) document.getElementById("btn-night-view").click();
                 setTimeline(s.timelineOn, s.timelineOn ? s.day : undefined).then(() => tlSetPlaying(false));
@@ -5946,7 +5951,7 @@ self.onmessage=async({data})=>{
             }
 
             document.getElementById("tour-open").addEventListener("click", startTour);
-            document.getElementById("tour-stop").addEventListener("click", stopTour);
+            document.getElementById("tour-stop").addEventListener("click", () => stopTour());
             // Escape stops the tour before anything else hears it
             document.addEventListener("keydown", (e) => {
                 if (e.key !== "Escape" || !tourOn) return;
