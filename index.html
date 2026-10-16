@@ -4701,7 +4701,8 @@ vec3 tl_state() {
                 // a deeper link opens at the closest zoom allowed
                 if (z >= 6) st.zoom = Math.min(z, MAX_ZOOM);
                 const ll = (h.get("ll") || "").split(",").map(Number);
-                if (ll.length === 2 && ll.every(Number.isFinite)) st.center = [ll[1], ll[0]];
+                // a latitude past the poles throws in MapLibre and the page never boots
+                if (ll.length === 2 && ll.every(Number.isFinite) && Math.abs(ll[0]) <= 90 && Math.abs(ll[1]) <= 180) st.center = [ll[1], ll[0]];
                 const c = (h.get("c") || "").split(",").filter((id) => _cantonById.has(id));
                 if (h.has("c")) st.cantons = c;
                 const off = (h.get("off") || "").split(",").filter((i) => /^\d+$/.test(i)).map((i) => colorAssignments[+i]?.label).filter(Boolean);
@@ -4954,6 +4955,11 @@ vec3 tl_state() {
                     antialias: true,
                     dragRotate: true,
                     attributionControl: false,
+                });
+                // the style's town dots ask for "circle-11", its sprite has "circle_11": the
+                // names never showed a dot, so a blank one keeps them so without a warning
+                map.setMissingStyleImageResolver((id) => {
+                    if (id === "circle-11" && !map.hasImage(id)) map.addImage(id, { width: 1, height: 1, data: new Uint8Array(4) });
                 });
 
                 overlay = new deck.MapLibreOverlay({
@@ -5804,6 +5810,8 @@ self.onmessage=async({data})=>{
                 let ac = null, out, bus, padBus, padF, pan, wet, noise, click, dest, an;
                 let drone = [], pads = [], key = TOUR_KEYS[0], sceneNo = 0;
                 let track = null, play = null, begun = false, live = false, rec = null;
+                // the suspend a stopped tour leaves pending: a tour reopened before it fires keeps its sound
+                let nap = 0;
                 // every tour starts with its music: ♪ turns it off for that tour only
                 let on = true;
                 const stats = { notes: [], scene: 0 };
@@ -5950,6 +5958,7 @@ self.onmessage=async({data})=>{
                     start() {
                         if (!window.AudioContext) return;
                         if (!ac) build();
+                        clearTimeout(nap);
                         if (on) ac.resume();
                         label();
                     },
@@ -5980,6 +5989,8 @@ self.onmessage=async({data})=>{
                         }
                     },
                     stop(finished) {
+                        // ♪ off lasts one tour: the next one, on this page too, starts with its music
+                        on = true;
                         if (!ac || !begun) return;
                         begun = live = false;
                         play = track = null;
@@ -5997,7 +6008,7 @@ self.onmessage=async({data})=>{
                             setTimeout(() => r.stop(), s * 1000);
                             rec = null;
                         }
-                        setTimeout(() => { if (!begun) ac.suspend(); }, (s + 0.3) * 1000);
+                        nap = setTimeout(() => { if (!begun) ac.suspend(); }, (s + 0.3) * 1000);
                     },
                     toggle() {
                         // blocked by the browser (a tour started from the link): the click lets it play
@@ -6132,6 +6143,7 @@ self.onmessage=async({data})=>{
             let tourLanding = Promise.resolve();
             // with the legend in sight, the place sits in the middle of the map beside it
             function tourFly(cam, ms, { legend = false } = {}) {
+                tourTurn++;
                 const rail = document.getElementById("rail-right");
                 const right = legend && tourTeaches() ? window.innerWidth - rail.getBoundingClientRect().left : 0;
                 cam = { ...cam, padding: { top: 0, bottom: 0, left: 0, right } };
@@ -6147,20 +6159,25 @@ self.onmessage=async({data})=>{
             }
             function tourDrift(cam, ms) {
                 if (reduceMotion) return;
+                tourTurn++;
                 if (tourSkipping()) { map.jumpTo(cam); return; }
                 map.easeTo({ ...cam, duration: ms, easing: (x) => x, essential: true });
             }
             // a full turn round the centre: easeTo takes the short way round, so the
             // bearing is stepped by hand, zoom and pitch easing to cam on the way
+            // the next flight or drift ends a turn: a late frame of it, on a busy page,
+            // would jump the camera back and leave the flight home short of Switzerland
+            let tourTurn = 0;
             function tourOrbit(run, cam, deg, ms) {
                 if (reduceMotion) return;
                 map.stop();
+                const turn = ++tourTurn;
                 const b0 = map.getBearing(), z0 = map.getZoom(), p0 = map.getPitch();
                 const z1 = cam.zoom ?? z0, p1 = cam.pitch ?? p0;
                 if (tourSkipping()) { map.jumpTo({ bearing: b0 + deg, zoom: z1, pitch: p1 }); return; }
                 const t0 = performance.now();
                 const frame = (now) => {
-                    if (run !== tourRun) return;
+                    if (run !== tourRun || turn !== tourTurn) return;
                     const f = Math.min(1, (now - t0) / ms);
                     const e = f < 0.5 ? 2 * f * f : 1 - (-2 * f + 2) ** 2 / 2;
                     map.jumpTo({ bearing: b0 + deg * e, zoom: z0 + (z1 - z0) * e, pitch: p0 + (p1 - p0) * e });
