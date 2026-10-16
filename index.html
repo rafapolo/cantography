@@ -2108,6 +2108,22 @@
                     padding-left: calc(8vw + 305px);
                 }
             }
+            /* the tour over, the page's controls come back in, not all in one frame */
+            body.tour-out #rail,
+            body.tour-out .panel-toggle,
+            body.tour-out .chips,
+            body.tour-out .dock,
+            body.tour-out #light-panel,
+            body.tour-out #legend,
+            body.tour-out #search-bar,
+            body.tour-out .maplibregl-ctrl {
+                animation: tour-out 700ms var(--ease) both;
+            }
+            @keyframes tour-out {
+                from {
+                    opacity: 0;
+                }
+            }
             body.touring #legend,
             body.touring #timeline,
             body.touring #search-bar {
@@ -6583,7 +6599,9 @@ self.onmessage=async({data})=>{
                 document.getElementById("tour-progress").hidden = true;
                 ui.classList.remove("on");
                 document.body.classList.remove("touring", "tour-legend", "tour-tl", "tour-search");
+                document.body.classList.add("tour-out");
                 setTimeout(() => {
+                    document.body.classList.remove("tour-out");
                     if (tourOn) return;
                     ui.hidden = true;
                     document.querySelector("#tour-progress i").style.transform = "scaleX(0)";
