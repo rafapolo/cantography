@@ -3295,10 +3295,12 @@ in float night_seed;
                     autoLit = new Uint32Array(size);
                 }
                 const grid = autoGrid, touched = autoLit, per = 1 / cell, P = visibleXY;
-                let lit = 0, bx0 = x1, bx1 = x0, by0 = y1, by1 = y0;
+                let lit = 0, bx0 = x1, bx1 = x0, by0 = y1, by1 = y0, sx = 0, seen = 0;
                 for (let i = 0; i < n; i++) {
                     const x = P[i * 2], y = P[i * 2 + 1];
                     if (x < x0 || x >= x1 || y < y0 || y >= y1) continue;
+                    sx += x;
+                    seen++;
                     if (x < bx0) bx0 = x;
                     if (x > bx1) bx1 = x;
                     if (y < by0) by0 = y;
@@ -3322,7 +3324,8 @@ in float night_seed;
                 // empty margins around the country at zoom 6 passed for sparse, and the light
                 // jumped from 0.016 to 1.5
                 const box = Math.min(size, (Math.ceil((bx1 - bx0) * per) + 1) * (Math.ceil((by1 - by0) * per) + 1));
-                return { lit, px: cell * world, gap: (cell * world) / Math.sqrt(lit / size), boxGap: (cell * world) / Math.sqrt(lit / box) };
+                // cx: the lamps' middle across the screen, -1 left to 1 right
+                return { lit, size, cx: seen ? ((sx / seen - x0) / (x1 - x0)) * 2 - 1 : 0, px: cell * world, gap: (cell * world) / Math.sqrt(lit / size), boxGap: (cell * world) / Math.sqrt(lit / box) };
             }
 
             function autoLook() {
@@ -3379,6 +3382,48 @@ in float night_seed;
                 return { light, size };
             }
 
+            // The light the screen gives, for the map's hum (tourMusic.glow): amount, the
+            // share of the screen glowing; focus, how gathered the lamps are (the share in
+            // the fullest 5% of lit cells, a city near 1, evenly lit streets near 0); x, where
+            function glowStats() {
+                const s = autoStats();
+                if (!s) return { amount: 0, focus: 0, x: 0, night: nightView };
+                const R = NIGHT_RADIUS * night.size, area = Math.PI * R * R;
+                const cover = area <= 1 ? area : Math.max(1, area / (s.px * s.px));
+                let glow = 0, lamps = 0;
+                for (let i = 0; i < AUTO_BINS; i++) {
+                    if (!autoCells[i]) continue;
+                    glow += autoCells[i] * Math.min(1, (autoPoints[i] / autoCells[i]) * night.light * cover);
+                    lamps += autoPoints[i];
+                }
+                // a cell's glow is capped, its lamps aren't: the gathering is counted in lamps
+                let left = Math.max(1, s.lit * 0.05), top = 0;
+                for (let i = AUTO_BINS - 1; i >= 0 && left > 0; i--) {
+                    if (!autoCells[i]) continue;
+                    const take = Math.min(left, autoCells[i]);
+                    top += take * (autoPoints[i] / autoCells[i]);
+                    left -= take;
+                }
+                return {
+                    amount: Math.min(1, Math.sqrt((glow / s.size) * 4)),
+                    focus: clamp((top / lamps - 0.06) / 0.3, 0, 1),
+                    x: s.cx,
+                    night: nightView,
+                };
+            }
+            // taken at most every GLOW_EVERY ms, and only while the map's sound plays
+            const GLOW_EVERY = 250;
+            let glowTimer = 0, glowThen = 0;
+            function glowSoon() {
+                if (glowTimer) return;
+                const every = tlPlaying || tlMoving ? 2 * GLOW_EVERY : GLOW_EVERY;
+                glowTimer = setTimeout(() => {
+                    glowTimer = 0;
+                    glowThen = performance.now();
+                    if (map && tourMusic.roams()) tourMusic.glow(glowStats());
+                }, Math.max(0, every - (performance.now() - glowThen)));
+            }
+
             // Walking the lamps is too slow for every frame of a zoom, so the look
             // is taken at most every AUTO_EVERY ms and the drawn light eases to it, as
             // ratios, with an AUTO_EASE ms time constant.
@@ -3387,6 +3432,7 @@ in float night_seed;
             let autoGoal = null, autoTimer = 0, autoLast = 0, autoFrame = 0, autoThen = 0;
 
             function autoSoon() {
+                glowSoon();
                 if (knobsLocked || autoTimer) return;
                 // a running timeline walks every lamp for each look, and the look eases anyway
                 const every = tlPlaying || tlMoving ? 2 * AUTO_EVERY : AUTO_EVERY;
@@ -3407,6 +3453,7 @@ in float night_seed;
             // new lamps on screen (a filter, a canton): the look is theirs from the
             // first frame; eased, a filter taken off would flash white
             function autoSnap() {
+                glowSoon();
                 if (knobsLocked) return;
                 const look = autoLook();
                 autoLast = performance.now();
@@ -3432,6 +3479,8 @@ in float night_seed;
                 redrawLayer();
                 showKnobs();
                 if (far) autoFrame = requestAnimationFrame(autoEase);
+                // the light settled: the hum hears it
+                else glowSoon();
             }
             function autoStop() {
                 cancelAnimationFrame(autoFrame);
@@ -5198,6 +5247,7 @@ vec3 tl_state() {
             function setNightView(on) {
                 // lit: night view, the ember lamps; off: the legal forms' colors
                 nightView = on;
+                glowSoon();
                 const btn = document.getElementById("btn-night-view");
                 btn.classList.toggle("active", on);
                 btn.setAttribute("aria-pressed", on ? "true" : "false");
@@ -6664,10 +6714,10 @@ self.onmessage=async({data})=>{
                     swell(key.root + 24, 0.55, t + 0.6, 2.6);
                 }
                 // a low, soft beat when a year (or five, or ten) goes by
-                function pulse() {
-                    const t = ac.currentTime, g = ac.createGain();
+                function pulse(t = ac.currentTime, vel = 1) {
+                    const g = ac.createGain();
                     g.gain.setValueAtTime(0, t);
-                    g.gain.linearRampToValueAtTime(0.16, t + 0.01);
+                    g.gain.linearRampToValueAtTime(0.16 * vel, t + 0.01);
                     g.gain.exponentialRampToValueAtTime(1e-4, t + 1.2);
                     g.connect(bus);
                     const o = osc("sine", hz(key.root - 12) * 1.5, g, t, t + 1.3);
@@ -6675,7 +6725,7 @@ self.onmessage=async({data})=>{
                     // its third harmonic, short: the beat a small speaker can play
                     const h = ac.createGain();
                     h.gain.setValueAtTime(0, t);
-                    h.gain.linearRampToValueAtTime(0.05, t + 0.005);
+                    h.gain.linearRampToValueAtTime(0.05 * vel, t + 0.005);
                     h.gain.exponentialRampToValueAtTime(1e-4, t + 0.25);
                     h.connect(bus);
                     const o3 = osc("sine", hz(key.root - 12) * 4.5, h, t, t + 0.3);
@@ -6712,15 +6762,90 @@ self.onmessage=async({data})=>{
                 }
                 // the bed's filter: the camera's zoom, tilted by the brightness knob while it moves
                 function padTone(t, s) {
-                    padF.frequency.setTargetAtTime(clamp(260 * 2 ** ((map.getZoom() - 7) / 1.8), 200, 3000) * lit, t, s);
+                    padF.frequency.setTargetAtTime(clamp(260 * 2 ** ((map.getZoom() - 7) / 1.8), 200, 3000) * lit * (1 + 0.5 * hum.amount), t, s);
+                }
+                // The light's hum, over the drone and as loud as the screen is lit: a saw on
+                // the root, a square an octave up a hair apart so they beat, a fluorescent
+                // tube's flicker; gathered light opens its buzz and sparks. No pitch ever
+                // moves: a chord gliding between voicings sounded like a fire engine
+                const hum = { amount: 0, x: 0, wet: 0, night: true, bus: null, filter: null, pan: null, oscs: [], beat: 0, next: 0, n: 0 };
+                function humStart(t) {
+                    const bus = ac.createGain(), trem = ac.createGain(), depth = ac.createGain(), lfo = ac.createOscillator();
+                    bus.gain.value = 0;
+                    hum.filter = ac.createBiquadFilter();
+                    hum.filter.type = "lowpass";
+                    hum.filter.Q.value = 2;
+                    hum.filter.frequency.value = 250;
+                    hum.pan = ac.createStereoPanner();
+                    bus.connect(hum.filter);
+                    hum.filter.connect(hum.pan);
+                    hum.pan.connect(bed);
+                    trem.connect(bus);
+                    lfo.frequency.value = 9;
+                    depth.gain.value = 0.15;
+                    lfo.connect(depth);
+                    depth.connect(trem.gain);
+                    const r = key.root - 12;
+                    hum.oscs = [lfo, ...[["sawtooth", r, 0, 0.05], ["square", r + 12, 1.5, 0.018], ["sawtooth", r + 24, -0.7, 0.008]].map(([type, m, off, gain]) => {
+                        const g = ac.createGain();
+                        g.gain.value = gain;
+                        g.connect(trem);
+                        return osc(type, hz(m) + off, g, t);
+                    })];
+                    lfo.start(t);
+                    hum.bus = bus;
+                    hum.next = t + 0.5;
+                    hum.n = 0;
+                    clearInterval(hum.beat);
+                    hum.beat = setInterval(humBeat, 100);
+                }
+                // a still map at night keeps a beat, the timeline's year pulse on a 120 bpm grid:
+                // every 4 beats where little is lit, every 2, then every one as the light fills
+                // the screen. A playing timeline beats its own years instead
+                const BEAT = 0.5;
+                function humBeat() {
+                    const t = ac.currentTime, a = hum.amount;
+                    const every = a < 0.05 ? 0 : a < 0.2 ? 4 : a < 0.4 ? 2 : 1;
+                    if (hum.next < t) hum.next = t + 0.05;
+                    for (; hum.next < t + 0.2; hum.next += BEAT, hum.n++) {
+                        if (every && hum.night && !(rplay && t - rplay.t < 1) && hum.n % every === 0) pulse(hum.next, 0.6);
+                    }
+                }
+                function humEnd(t, s) {
+                    if (!hum.bus) return;
+                    hum.bus.gain.setTargetAtTime(0, t, s / 4);
+                    for (const o of hum.oscs) o.stop(t + s + 0.1);
+                    hum.oscs = [];
+                    hum.bus = null;
+                    clearInterval(hum.beat);
+                    hum.amount = hum.wet = 0;
+                }
+                // a spark: a few ms of noise, high and dry, from near where the light is
+                function spark(t) {
+                    const src = ac.createBufferSource(), hp = ac.createBiquadFilter(), g = ac.createGain(), p = ac.createStereoPanner();
+                    const len = 0.002 + Math.random() * 0.012;
+                    src.buffer = noise;
+                    hp.type = "highpass";
+                    hp.frequency.value = 2500 + Math.random() * 3000;
+                    g.gain.setValueAtTime(0.04 + Math.random() * 0.08, t);
+                    g.gain.exponentialRampToValueAtTime(1e-4, t + len);
+                    p.pan.value = clamp(hum.x * 0.6 + (Math.random() - 0.5) * 0.5, -1, 1);
+                    src.connect(hp);
+                    hp.connect(g);
+                    g.connect(p);
+                    p.connect(dry);
+                    src.start(t, Math.random() * 1.5, len + 0.01);
                 }
                 function camera() {
                     const t = ac.currentTime;
                     padTone(t, 0.15);
                     pan.pan.setTargetAtTime(Math.sin((map.getBearing() * Math.PI) / 180) * 0.5, t, 0.15);
-                    wet.gain.setTargetAtTime(0.2 + (map.getPitch() / 66) * 0.4, t, 0.3);
+                    wet.gain.setTargetAtTime(0.2 + (map.getPitch() / 66) * 0.4 + hum.wet, t, 0.3);
                     wake();
-                    if (roaming) gust(t);
+                    if (roaming) {
+                        gust(t);
+                        glowSoon();
+                    }
                 }
                 // roaming, the wind blows as fast as the map goes: pixels, zoom and turn per second
                 function gust(t) {
@@ -6779,6 +6904,7 @@ self.onmessage=async({data})=>{
                         g.connect(bed);
                         src.start(t);
                         wind = { src, bp, g };
+                        humStart(t);
                         last = null;
                         map.on("move", camera);
                         camera();
@@ -6803,6 +6929,7 @@ self.onmessage=async({data})=>{
                     wind.g.gain.setTargetAtTime(0, t, 0.1);
                     wind.src.stop(t + s + 0.1);
                     wind = null;
+                    humEnd(t, Math.max(s, 0.5));
                     if (hand) return;
                     slept = true;
                     fade(0, s);
@@ -7216,6 +7343,7 @@ self.onmessage=async({data})=>{
                             clearTimeout(litRest);
                             litRest = setTimeout(() => { lit = 1; padTone(ac.currentTime, 0.3); }, 500);
                         }
+                        glowSoon();
                         if (n === k.n) return;
                         k.n = n;
                         // a fast drag skips steps rather than rattling
@@ -7246,6 +7374,25 @@ self.onmessage=async({data})=>{
                         if (!roaming) return;
                         poke();
                         tap(key.root + 24 + key.chord[1] % 12, 0.5, ac.currentTime);
+                    },
+                    roams: () => roaming,
+                    // the light on screen (glowStats): the hum's level, buzz, side and sparks;
+                    // by day the lamps are off, so a fifth of it stays, soft and without sparks
+                    glow(g) {
+                        if (!roaming || !hum.bus) return;
+                        const t = ac.currentTime;
+                        hum.amount = g.amount;
+                        hum.x = g.x;
+                        hum.night = g.night;
+                        hum.wet = 0.15 * (1 - g.focus);
+                        hum.bus.gain.setTargetAtTime(g.amount * 0.9 * (g.night ? 1 : 0.2), t, 1.2);
+                        hum.filter.frequency.setTargetAtTime(g.night ? 250 + 400 * g.amount + 2200 * g.focus * g.amount : 250, t, 1);
+                        hum.pan.pan.setTargetAtTime(clamp(g.x * 0.6, -0.6, 0.6), t, 1);
+                        // up to about 6 a second where much light gathers, over the next 250 ms
+                        const rate = g.night ? 6 * g.amount * (0.25 + g.focus) : 0;
+                        for (let k = 0; k < 3; k++) if (Math.random() < (rate * 0.25) / 3) spark(t + Math.random() * 0.25);
+                        padTone(t, 1.5);
+                        wet.gain.setTargetAtTime(0.2 + (map.getPitch() / 66) * 0.4 + hum.wet, t, 1);
                     },
                     // a new caption: the chord's top note, quietly
                     chime() {
