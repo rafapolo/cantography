@@ -4220,6 +4220,13 @@ vec3 tl_state() {
             // lamps leave the map, the counters and the bars (the playback pace stays that of all lamps)
             const TL_CANTON_IDS = CANTONS.map((c) => c.id).sort();
             function tlApplyLegend() {
+                // every refresh bumps the version: the same forms and cantons keep the walk done
+                const key = [...activeLabels].sort().join("|") + "#" + [...activeCantons].sort().join("|");
+                if (tl.filterKey === key) {
+                    tl.filterVersion = _filterVersion;
+                    return;
+                }
+                tl.filterKey = key;
                 const on = {};
                 for (const code in T_DECODE) on[code.charCodeAt(0)] = activeLabels.has(T_DECODE[code]) ? 1 : 0;
                 const cantonOn = new Uint8Array(256).fill(1);
@@ -6421,6 +6428,9 @@ self.onmessage=async({data})=>{
                 // 0 · the country tonight
                 await tourTimeline(run, false);
                 tourForms(null);
+                // the timeline's filter for every form, walked now, while the frame is
+                // still: not as Geneva's flight takes off
+                tlApplyLegend();
                 tourShow();
                 const home = tourHome();
                 map.jumpTo(home);
