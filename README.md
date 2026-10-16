@@ -28,18 +28,18 @@ No account needed. No install. Just open the link.
 - **Scroll** (or pinch on mobile) to zoom in and out
 - **Click and drag** to move around
 - **Hover any dot** to see the companies at that address — name, legal form and the year it was registered (*'98*); **click** to pin the card so you can select text and open each company in the official register ([Zefix](https://www.zefix.ch)) with the ↗ link. Click empty map or press **Esc** to close it
-- **Share what you see**: the address bar keeps the zoom, position, cantons, legal-form filters, night view and the timeline's date, so copying the link shares the exact view
+- **Share what you see**: the address bar keeps the zoom, position, legal-form filters, night view and the timeline's date, so copying the link shares the exact view
 
 ### Searching for a company
-Type any company name in the **search bar** at the top of the map (or press **/** from anywhere). Results search across all 795,000 companies — even ones in cantons you haven't loaded yet — ignore accents (*zurich* finds *Zürich*) and list names that start with your text first.
+Type any company name in the **search bar** at the top of the map (or press **/** from anywhere). Results search across all 795,000 companies — even ones whose canton is still loading — ignore accents (*zurich* finds *Zürich*) and list names that start with your text first.
 
 - Use **↑ / ↓ arrow keys** to move through results, **Enter** to select, **Esc** to close
 - Click any result to fly directly to that company on the map — a green ring marks the exact dot for 3 seconds, and its card opens with that company on top
 - If a company name matches multiple locations (e.g. a chain with branches), all locations are marked and the map fits to show them all
-- If the company's canton wasn't loaded yet, it loads automatically
+- If the company's canton is still loading, the marks appear as soon as it lands
 
 ### Left panel — Cantons
-Choose which cantons (regions) to show on the map. By default Bern is loaded. Click any canton name to load its companies (the map flies there if it's off-screen). You can select all or none with the buttons at the top; with *Select all* each canton appears as soon as it arrives. If a canton fails to load, a message offers to retry. The cantons you switch on also filter the timeline.
+All 26 cantons (regions) are on the map, each drawn as soon as its data arrives. The panel is a map of tiles, brighter where there are more companies: hover a tile to see the canton's total, click it to fly there. If a canton fails to load, a message offers to retry.
 
 ### Right panel — Legend
 The legend shows the 12 legal forms and their colours. Click any item to hide or show that company type, on the map and in the timeline. The number in brackets shows how many companies of that type are in view; it spins while a canton is still loading.
@@ -47,7 +47,7 @@ The legend shows the 12 legal forms and their colours. Click any item to hide or
 The interface is in English; switch it to German with **DE** in the top-right of the legend (and back with **EN**). Your choice is remembered.
 
 ### Night view
-The **moon** button next to the search turns every company into a warm light, like a satellite photo of Switzerland at night: dense business districts glow, single companies twinkle. The exposure adapts to what is in view, so a village is as readable as Zürich. With few legal forms or cantons switched on, the lights grow bigger and brighter so the few left stay easy to see.
+The **moon** button next to the search turns every company into a warm light, like a satellite photo of Switzerland at night: dense business districts glow, single companies twinkle. The exposure adapts to what is in view, so a village is as readable as Zürich. With few legal forms switched on, the lights grow bigger and brighter so the few left stay easy to see.
 
 ### Timeline
 The **clock** button next to the search opens the timeline at the bottom of the screen.
@@ -57,7 +57,7 @@ The **clock** button next to the search opens the timeline at the bottom of the 
 - The date shows the **year** before 2018 and the **month** from 2018 (when the SHAB, the official gazette, starts recording both entries and deletions)
 - The bars show new entries per year before 2018, and new entries (up) and deletions (down) per month after
 - Drag the **slider**, or use **← / →**, to move a year at a time before 2018 and a month at a time after; **Space** plays and pauses
-- **Opened**, **Closed** and **Net** count the companies of the cantons and legal forms you have switched on
+- **Opened**, **Closed** and **Net** count the companies of the legal forms you have switched on
 - Every light has its legal form's colour and the same brightness; only the twinkle moves it. Companies at one address share one light, as on the map, so lights only add up as you zoom out
 - Hover (or tap) a light to see the same card as on the map: the company's name, the year it was registered (*'98*) and its legal form
 
@@ -89,7 +89,7 @@ For those curious about how it works under the hood:
 
 - **One list of today's companies** feeds both views: `scripts/canton_files.py` writes the 26 canton files and the search index from LINDAS, so at the end of the timeline every lit lamp sits on a map point
 - **Entry year** (the *'98*): the cantonal register's date, else the SHAB new entry, else an estimate from the order of the register ids (`scripts/opening_dates.py`); known for 99.99% of companies
-- The canton files are gzipped columnar JSON (~12 MB for all 26), fetched on demand — no server needed. Bern is preloaded and streams in alongside the map style, so nothing waits on data before the first paint
+- The canton files are gzipped columnar JSON (~12 MB for all 26), fetched on demand — no server needed. All 26 start loading alongside the map style and each is drawn as it lands, so nothing waits on data before the first paint
 - Fetching, unzipping and grouping a canton by address run in a **web worker**, which hands the points back as typed arrays (transferred, not copied) and the names as one string, so a canton loads without blocking the page
 - Canton and legal-form filters run on the GPU (deck.gl `DataFilterExtension`), on the map and the timeline alike, so toggling them never re-uploads the points
 - A separate **search index** (`search_index.json.gz`, ~9 MB) is downloaded, accent-folded and queried in a second web worker, so searching 795,000 names never blocks the map
