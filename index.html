@@ -4381,8 +4381,11 @@ vec3 tl_state() {
             }
 
             // the companies of today, or the timeline in their place
+            let tlWarming = false; // the tour's loading draws the timeline once, unseen
             function currentLayers() {
-                return timelineOn && tl ? [buildTimelineLayer()] : [buildLayer()];
+                if (timelineOn && tl) return [buildTimelineLayer()];
+                if (tlWarming && tl) return [buildLayer(), buildTimelineLayer().clone({ id: "timeline-warm", filterRange: [2, 2], pickable: false })];
+                return [buildLayer()];
             }
 
             // before 2018 years fly by: show the year only; from 2018 the month and the year
@@ -6416,10 +6419,18 @@ self.onmessage=async({data})=>{
                     tourCheck(run);
                     await until(() => document.getElementById("map").classList.contains("ready"), 10000);
                     show();
+                    // the timeline's layer drawn for a few frames, every lamp filtered out:
+                    // its shaders link now, not as the first scene cuts to it (luma keeps
+                    // them cached once the layer goes)
+                    tlWarming = true;
                     refreshLayer();
                     await tourWait(run, 400);
                 } finally {
                     clearInterval(ticker);
+                    if (tlWarming) {
+                        tlWarming = false;
+                        redrawLayer();
+                    }
                 }
             }
 
