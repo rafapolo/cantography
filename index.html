@@ -2397,7 +2397,7 @@
             <div id="search-row">
                 <!-- the two modes of the map, one each side of the search: night view and the timeline -->
                 <button id="btn-night-view" class="mode-btn active" aria-pressed="true" aria-label="Night view" data-i18n-aria="nightView">
-                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M21 15.5v-1.8l-7.5-4.7V4.2a1.5 1.5 0 0 0-3 0V9L3 13.7v1.8l7.5-2.3v4.9l-2 1.5v1.4l3.5-1 3.5 1v-1.4l-2-1.5v-4.9z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+                    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M20.5 14.2A8.5 8.5 0 1 1 9.8 3.5a6.8 6.8 0 0 0 10.7 10.7z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
                 </button>
                 <div id="search-wrapper">
                     <span id="search-icon" aria-hidden="true">⌕</span>
@@ -7106,8 +7106,8 @@ self.onmessage=async({data})=>{
                 await tourWait(run, 300);
                 tourCaption("Zurich · 2016–2026", `${tourNum(tourCount("ZH", ZH, from, to))} new AGs and GmbHs in ten years.`);
                 await tourLanded(run);
-                tourOrbit(run, { zoom: 13.4 }, 360, 8000);
-                await tourPlay(run, from, to, 8000);
+                tourOrbit(run, { zoom: 13.4 }, 360, 7500);
+                await tourPlay(run, from, to, 7500);
 
                 // 3 · Bern: sole proprietors, straight down, then tilting; the timeline's play
                 tourCaption("", "");
@@ -7120,7 +7120,7 @@ self.onmessage=async({data})=>{
                 tourShow("legend", "tl");
                 tourCaption("timeline", "Play the timeline: every opening since 1883 and closing since 2018.");
                 // the longest line of the film: time to read it before the play
-                await tourWait(run, 2000);
+                await tourWait(run, 3500);
                 await tourClick(run, document.getElementById("tl-play"), false);
                 tourPointerOff();
                 tourCaption("Bern · 2016–2026", `${tourNum(tourCount("BE", BE, from, to))} people started a business of their own.`);
@@ -7162,10 +7162,11 @@ self.onmessage=async({data})=>{
                 tourMusic.scene(5);
                 tourCaption("search", `Find any of ${tourNum(total)} companies on the map.`);
                 await tourSearch(run, "Nestlé Suisse", 1400);
-                await tourWait(run, 3000);
+                await tourWait(run, 2000);
 
                 // 6 · Basel, tilted and slowly turning, lighting up from 1945 to 2025 in night
-                // view, no flashes: the lamps just come on. Then back to the whole country
+                // view, each opening flashing in; then night view off and a full turn in the
+                // forms' colours. Then back to the whole country
                 tourCaption("", "");
                 tourYear("");
                 tourShow();
@@ -7178,14 +7179,17 @@ self.onmessage=async({data})=>{
                 tourFly({ center: [7.5886, 47.5596], zoom: 12.6, pitch: 55, bearing: -20 }, 2600);
                 await tourLanded(run);
                 tourCaption("Basel · 1945–2025", "Eighty years of companies, transforming a city.");
-                tourOrbit(run, { zoom: 12.9 }, 50, 10000);
+                tourOrbit(run, { zoom: 12.9 }, 40, 6000);
                 tourMusic.swell(10000);
                 // paced by the calendar, not the timeline's clock: that one gives 2018–2025 most
                 // of the run, and Basel is mostly lit by 2018
-                await tourPlay(run, y1945, y2025, 5000, { flash: false, years: true });
-                // 2025 held 5 s, still turning, in the forms' colours
+                await tourPlay(run, y1945, y2025, 4000, { years: true });
+                // all of it lit: 2 s to see it at night, then 4 s in the forms' colours,
+                // the camera going once around
+                await tourWait(run, 2000);
                 if (nightView) document.getElementById("btn-night-view").click();
-                await tourWait(run, 5000);
+                tourOrbit(run, {}, 360, 4000);
+                await tourWait(run, 4000);
                 tourYear("");
                 if (!nightView) document.getElementById("btn-night-view").click();
                 tourMusic.scene(7);
