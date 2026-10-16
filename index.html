@@ -3708,6 +3708,17 @@ self.onmessage=async({data:{id,cantonId,base}})=>{try{const c=await load(base,ca
             // visibleXY is a view on one buffer, refilled in place instead of a new array each time
             let _visibleBuf = new Float64Array(0);
             const visibleBuf = (n) => (_visibleBuf.length < 2 * n ? (_visibleBuf = new Float64Array(2 * n)) : _visibleBuf);
+            // the timeline's lamps in Web Mercator, worked out once: sin and log per lamp
+            // were most of the walk. The tour does it while loading, not on its first cut
+            function tlMerc(t) {
+                if (t.merc) return t.merc;
+                const p = t.pos, m = (t.merc = new Float64Array(p.length));
+                for (let j = 0; j < p.length; j += 2) {
+                    m[j] = mercX(p[j]);
+                    m[j + 1] = mercY(p[j + 1]);
+                }
+                return m;
+            }
             // the timeline: the lamps lit on the day shown and not filtered out, one per
             // address as they are drawn, so auto adapts to how many there are then
             function syncTimelineXY() {
@@ -3719,8 +3730,7 @@ self.onmessage=async({data:{id,cantonId,base}})=>{try{const c=await load(base,ca
                 if (tl.filterVersion !== _filterVersion) tlApplyLegend();
                 const keep = tl.data.attributes.getFilterValue?.value;
                 const { n, addr, o16, c16 } = tl;
-                // the lamps in Web Mercator, worked out once: sin and log per lamp were most of the walk
-                const merc = (tl.merc ??= Float64Array.from(tl.pos, (v, j) => (j & 1 ? mercY(v) : mercX(v))));
+                const merc = tlMerc(tl);
                 const xy = visibleBuf(n);
                 let last = -1, k = 0;
                 for (let i = 0; i < n; i++) {
@@ -6301,7 +6311,7 @@ self.onmessage=async({data})=>{
                 show();
                 const ticker = setInterval(show, 200);
                 try {
-                    const timeline = (tlLoading ??= loadTimeline()).then((d) => { tl = d; tlIn = 1; });
+                    const timeline = (tlLoading ??= loadTimeline()).then((d) => { tl = d; tlMerc(d); tlIn = 1; });
                     // the map's style has to be in to know the tiles' address
                     await until(() => map.getSource("openmaptiles")?.tiles, 30000);
                     tiles = tourTileUrls();
