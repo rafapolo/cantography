@@ -2,7 +2,7 @@
 
 The tour is a ~70 s camera ride made for the Swiss Viz Awards video. It also shows how to use the site: a drawn pointer clicks the real controls. To play it, use the **▶ tour** button among the chips at the bottom right, or open `?tour=1`, which starts on its own once the map has loaded; add `&t=<seconds>` (e.g. `?tour=1&t=54` for Basel) to start about there, the scenes before it run through at once. **Esc** or **✕ esc** stop the tour and put the filters, the timeline and night view back the way they were.
 
-This file describes what happens in each scene. To change something, edit it here and ask for the change in the code: the scenes live in `tourScenes()`, in `index.html`.
+This file describes what happens in each scene. To change something, edit it here and ask for the change in the code: the scenes live in `tourScenes()`, in `index.html`. The timings, gains and voices of the music are in [EFFECTS.md](EFFECTS.md#tour-music); the palette and the look in [DESIGN.md](DESIGN.md).
 
 ## General rules
 
@@ -32,7 +32,7 @@ The tour has its own music, made in the browser as it plays (no sound file). A d
 | 6a · Basel | D major, the chord growing for 10 s |
 | 6b · the end | the opening's chord, then a 2.5 s fade |
 
-- **♪ sound** beside **✕ esc** turns it off or on, struck through while silent; every tour starts with the sound on. A tour started from `?tour=1` may be held silent by the browser until the first click or key.
+- **♪ sound** beside **✕ esc** turns it off or on, struck through while silent; every tour starts with the sound on. A tour started from `?tour=1` may be held silent by the browser until the first click or key. On iPhone and iPad the music plays as media, so the silent switch doesn't mute it. Where the browser has no Web Audio, or still holds the sound silent a second after a click or key, the button is hidden.
 - With `?t=`, the scenes skipped are silent; the sound comes in where the film starts.
 - `?rec=1` is for filming: it hides **♪ sound**, **✕ esc**, the progress line, the seconds left and the tinted frame, draws the lamps 25% larger so they survive the video's compression, and saves the music of a tour played to the end as `cantography-tour.webm`, to lay under a screen recording made in the same window.
 - `?music=debug` exposes `tourMusic` on `window` (notes per scene, `tourMusic.rms()`).
