@@ -3314,9 +3314,18 @@ in float night_seed;
                     gaps.sort((a, b) => a - b);
                     if (gaps[30] <= SLOW_FRAME_MS) return;
                     twinkleMs = 140;
-                    if (DECK_DPR > 1) overlay.setProps({ useDevicePixels: 1 });
+                    if (DECK_DPR > 1) {
+                        overlay.setProps({ useDevicePixels: 1 });
+                        deckDprGiven();
+                    }
                 };
                 requestAnimationFrame(tick);
+            }
+            // the overlay hands the deck all its props on every setProps, and the deck
+            // measures the canvas (a forced layout) whenever useDevicePixels is among
+            // them: every frame of an animation. Once the deck has it, it is dropped
+            function deckDprGiven() {
+                delete overlay?._props?.useDevicePixels;
             }
 
             // Night basemap: black under the lamps, since additive light is only
@@ -4999,6 +5008,7 @@ vec3 tl_state() {
                         .querySelector(".maplibregl-ctrl-attrib")
                         ?.classList.remove("maplibregl-compact-show");
                     map.addControl(overlay);
+                    deckDprGiven();
                     document.getElementById("deckgl-overlay")?.setAttribute("aria-label", t("mapCanvas"));
                     // a jumpTo a frame (the tour's turns) ends a move every frame: the counts
                     // walk every lamp in view, so they wait for the camera to settle
