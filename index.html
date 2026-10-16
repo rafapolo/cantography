@@ -4724,7 +4724,13 @@ vec3 tl_state() {
                 obs.observe(document.getElementById("about"), { attributes: true, attributeFilter: ["open"] });
                 obs.observe(document.body, { attributes: true, attributeFilter: ["class"] });
                 window.addEventListener("popstate", () => {
-                    _backing = false;
+                    // our own step back, dropping the entry a sheet or the tour opened: the
+                    // view stays where it is, and the address catches up with it
+                    if (_backing) {
+                        _backing = false;
+                        updateUrl();
+                        return;
+                    }
                     clearTimeout(_urlTimer);
                     _pushNext = false;
                     if (overlayOpen() && !history.state?.sheet) {
