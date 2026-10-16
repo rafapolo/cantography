@@ -3470,6 +3470,7 @@ in float night_seed;
                 head.addEventListener("click", () => {
                     panel.classList.toggle("folded");
                     head.setAttribute("aria-expanded", panel.classList.contains("folded") ? "false" : "true");
+                    tourMusic.door(!panel.classList.contains("folded"));
                 });
                 for (const [id, name, read] of [
                     ["knob-light", "light", posToLight],
@@ -5819,6 +5820,7 @@ vec3 tl_state() {
             document
                 .getElementById("toggle-light")
                 .addEventListener("click", () => {
+                    tourMusic.door(!document.getElementById("light-panel").classList.contains("open"));
                     const panel = document.getElementById("light-panel");
                     hideTooltip();
                     panel.classList.toggle("open");
@@ -5852,16 +5854,20 @@ vec3 tl_state() {
             document.getElementById("collapse-canton").addEventListener("click", () => {
                 document.getElementById("canton-panel").classList.add("collapsed");
                 document.getElementById("toggle-canton").setAttribute("aria-expanded", "false");
+                tourMusic.door(false);
             });
             document.getElementById("collapse-legend").addEventListener("click", () => {
                 legendTouched = true;
                 document.getElementById("legend").classList.add("collapsed");
                 document.getElementById("toggle-legend").setAttribute("aria-expanded", "false");
+                tourMusic.door(false);
             });
 
             // Click on map closes panels
             document.getElementById("map").addEventListener("click", (e) => {
                 if (e.target.id === "map" || e.target.classList.contains("maplibregl-canvas")) {
+                    // a phone's sheet shut by a tap on the map taps shut too
+                    if (document.querySelector("#canton-panel.open, #legend.open, #light-panel.open")) tourMusic.door(false);
                     document.getElementById("canton-panel").classList.remove("open");
                     document.getElementById("legend").classList.remove("open");
                     document.getElementById("light-panel").classList.remove("open");
