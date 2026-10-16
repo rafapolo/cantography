@@ -5804,8 +5804,8 @@ self.onmessage=async({data})=>{
                 let ac = null, out, bus, padBus, padF, pan, wet, noise, click, dest, an;
                 let drone = [], pads = [], key = TOUR_KEYS[0], sceneNo = 0;
                 let track = null, play = null, begun = false, live = false, rec = null;
+                // every tour starts with its music: ♪ turns it off for that tour only
                 let on = true;
-                try { on = localStorage.getItem("cantography-sound") !== "0"; } catch {}
                 const stats = { notes: [], scene: 0 };
                 const hz = (m) => 440 * 2 ** ((m - 69) / 12);
                 // integers to [0, 1): the same tick always picks the same note
@@ -5917,8 +5917,8 @@ self.onmessage=async({data})=>{
                 }
                 function label() {
                     const btn = document.getElementById("tour-sound");
+                    // one word, struck through when silent: "♪ off" struck through read as on
                     const playing = on && ac?.state === "running";
-                    btn.textContent = playing ? "♪ sound" : "♪ off";
                     btn.setAttribute("aria-pressed", playing ? "true" : "false");
                 }
                 // the sound comes up once the film runs (not while ?t= skips ahead)
@@ -6003,7 +6003,6 @@ self.onmessage=async({data})=>{
                         // blocked by the browser (a tour started from the link): the click lets it play
                         if (on && ac && ac.state !== "running") { ac.resume(); return; }
                         on = !on;
-                        try { localStorage.setItem("cantography-sound", on ? "1" : "0"); } catch {}
                         if (ac) {
                             if (on) { ac.resume(); live = false; wake(); }
                             else { live = false; out.gain.setTargetAtTime(0, ac.currentTime, 0.1); }
