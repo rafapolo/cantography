@@ -24,7 +24,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  # one job: a second one waited ~6 s for its own runner just to deploy
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -59,13 +63,6 @@ jobs:
           path: 'dist'
           retention-days: 3
 
-  deploy:
-    needs: build
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
