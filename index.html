@@ -5870,16 +5870,17 @@ self.onmessage=async({data})=>{
                         camera();
                         if (q.has("rec") && window.MediaRecorder) {
                             const chunks = [];
-                            rec = new MediaRecorder(dest.stream);
-                            rec.ondataavailable = (e) => chunks.push(e.data);
-                            rec.onstop = () => {
-                                if (!rec.keep) return;
+                            // stop() has cleared rec by the time this one stops
+                            const r = (rec = new MediaRecorder(dest.stream));
+                            r.ondataavailable = (e) => chunks.push(e.data);
+                            r.onstop = () => {
+                                if (!r.keep) return;
                                 const a = document.createElement("a");
-                                a.href = URL.createObjectURL(new Blob(chunks, { type: rec.mimeType }));
-                                a.download = `cantography-tour.${rec.mimeType.includes("mp4") ? "m4a" : "webm"}`;
+                                a.href = URL.createObjectURL(new Blob(chunks, { type: r.mimeType }));
+                                a.download = `cantography-tour.${r.mimeType.includes("mp4") ? "m4a" : "webm"}`;
                                 a.click();
                             };
-                            rec.start();
+                            r.start();
                         }
                     },
                     stop(finished) {
