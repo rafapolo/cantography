@@ -15,7 +15,7 @@ from a reply to a click:
 | Family | Sounds | How |
 |---|---|---|
 | Data | the timeline's notes, a legal form picked in the legend (it teaches the form's voice) | bells, panned with the camera, into the room |
-| Interface | **Select all** / **Deselect all**, timeline open / shut, a canton landing or failing, waking, the tour's clicks and captions | `tap`: a click and a triangle note, 0.15 s, dry (no room) |
+| Interface | **Select all** / **Deselect all**, timeline open / shut, the chips and panels, the language, a canton landing or failing, waking, the tour's clicks and captions | `tap`: a click and a triangle note, 0.15 s, dry (no room) |
 | Moments | the first touch, all cantons in, the tour's end | `swell`: a sine and a triangle ±4 cents, 0.12 s in, 1.4–2.6 s out, into the room |
 
 The night and day cue keeps its own glass bells, as a change of state.
@@ -63,6 +63,7 @@ on, together with the tour's ♪; the choice is kept in `localStorage`
 | Legend | a form picked rings in its voice, an octave lower when taken off; **Select all** / **Deselect all** tap the chord up or down | gain 0.12 × 0.7 or 0.4; taps 0.07 s apart |
 | Night / day | **night** on: the lamps coming on, glass bells (sine, FM 3.5 dying in 0.25 s) falling down the key's chord over two octaves, right to left, as the root two octaves down swells and settles; off: the same rising left to right into a breath of air (noise, band 2.5 → 7 kHz) | about 1.3 s; notes 0.06 s apart, quickening; bells 0.07, low tone 0.09 |
 | Light knobs | a dry tap every 5 % a knob moves, a ratchet: **brightness** up the scale as it rises, **size** down it, the bigger the lower; a low tap (the root) at either end; brightness also tilts the bed's filter, × 2^((f − 0.5) × 3), back 0.5 s after the knob rests. **auto**: two taps up the chord when it comes back on, down when the knobs are held by hand | taps 0.5, at most one per 40 ms per knob, panned with the thumb (±0.4), over two octaves |
+| Chips and panels | **top view** and **names** switch like **auto**: two taps up the chord on, down off. **about**, the **cantons** and **legend** panels open with one high tap (the root two octaves up) and shut with a low one (the chord's second note, an octave up); about shut by a tour starting stays silent. **DE** / **EN** tap once over the open tap (the chord's second note, two octaves up), only when the language changes | switch 0.7, 0.07 s apart; door 0.6; language 0.5 |
 | Timeline open / shut | three taps, up the scale (degrees 1, 3, 5) when it opens, down when it shuts | 0.07 s apart |
 | Timeline | while the visitor plays it or moves it by hand (drags, clicks along it, steps it), back in time too: the openings of the shown cantons and forms, ticks of at most 8 a second, and the year pulse; a click far off rings once for the span | as the tour's notes |
 | Sleep | after 60 s with nothing moving or ringing | the drone sinks to the root two octaves down and the room opens (0.6), 3 s fade, then the audio context suspends |

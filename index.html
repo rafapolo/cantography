@@ -2911,9 +2911,10 @@
             document
                 .querySelectorAll(".lang-btn")
                 .forEach((btn) =>
-                    btn.addEventListener("click", () =>
-                        applyLang(btn.dataset.lang),
-                    ),
+                    btn.addEventListener("click", () => {
+                        if (btn.dataset.lang !== currentLang) tourMusic.lang();
+                        applyLang(btn.dataset.lang);
+                    }),
                 );
 
             // ── Legal form color config ────────────────────────────────────────────
@@ -3511,7 +3512,7 @@ in float night_seed;
                 }
                 document.getElementById("knob-auto").addEventListener("click", () => {
                     setLocked(!knobsLocked);
-                    tourMusic.auto(!knobsLocked);
+                    tourMusic.flip(!knobsLocked);
                     // back on auto, the sliders follow the screen right away
                     if (!knobsLocked) autoNow();
                 });
@@ -3561,6 +3562,7 @@ in float night_seed;
                 setTilted(false);
                 document.getElementById("tilt").addEventListener("click", () => {
                     setTilted(!tilted);
+                    tourMusic.flip(tilted);
                     map.easeTo({ pitch: tilted ? TILT : 0, bearing: tilted ? map.getBearing() : 0, duration: reduceMotion ? 0 : 900 });
                 });
                 // a pitch made by hand (right drag, two fingers) sets the chip too
@@ -3568,10 +3570,13 @@ in float night_seed;
                 document.getElementById("names").addEventListener("click", () => {
                     names = !names;
                     document.getElementById("names").setAttribute("aria-pressed", names ? "true" : "false");
+                    tourMusic.flip(names);
                     showNames();
                 });
                 const about = document.getElementById("about");
-                document.getElementById("about-open").addEventListener("click", () => about.showModal());
+                document.getElementById("about-open").addEventListener("click", () => { about.showModal(); tourMusic.door(true); });
+                // ×, Esc, the backdrop and the back button all end here; a tour starting shuts it quietly
+                about.addEventListener("close", () => { if (!tourOn) tourMusic.door(false); });
                 // a click on the backdrop closes it too
                 about.addEventListener("click", (e) => { if (e.target === about) about.close(); });
             }
@@ -5806,6 +5811,11 @@ vec3 tl_state() {
                         document.getElementById("toggle-light").setAttribute("aria-expanded", "false");
                     }
                 });
+            // after the toggles above, so the panel's new state is read
+            for (const id of ["toggle-canton", "toggle-legend"]) {
+                const btn = document.getElementById(id);
+                btn.addEventListener("click", () => tourMusic.door(btn.getAttribute("aria-expanded") === "true"));
+            }
             document
                 .getElementById("toggle-light")
                 .addEventListener("click", () => {
@@ -7210,13 +7220,26 @@ self.onmessage=async({data})=>{
                         const d = Math.round(((name === "light" ? n : 20 - n) / 20) * sc.length * 2);
                         tap(key.root + 12 + 12 * Math.floor(d / sc.length) + sc[d % sc.length], 0.5, t, x);
                     },
-                    // the light back on auto: two taps up the chord; held by hand: down
-                    auto(on) {
+                    // a switch (the light back on auto, top view, names): two taps up the
+                    // chord when on; off (the light held by hand): down
+                    flip(on) {
                         if (!roaming) return;
                         poke();
                         const t = ac.currentTime, hi = key.root + 24, lo = key.root + 12 + key.chord[1];
                         tap(on ? lo : hi, 0.7, t);
                         tap(on ? hi : lo, 0.7, t + 0.07);
+                    },
+                    // a panel or the about opening: one high tap; shutting: one low
+                    door(open) {
+                        if (!roaming) return;
+                        poke();
+                        tap(open ? key.root + 24 : key.root + 12 + key.chord[1], 0.6, ac.currentTime);
+                    },
+                    // the language changed: one tap over the door's, neither up nor down
+                    lang() {
+                        if (!roaming) return;
+                        poke();
+                        tap(key.root + 24 + key.chord[1] % 12, 0.5, ac.currentTime);
                     },
                     // a new caption: the chord's top note, quietly
                     chime() {
