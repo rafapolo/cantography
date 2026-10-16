@@ -1850,6 +1850,21 @@
                 border-top: 4.5px solid transparent;
                 border-bottom: 4.5px solid transparent;
             }
+            /* a first visit: the button lights up three times in 1.5s, once the map is in */
+            #tour-open.hint {
+                animation: tour-hint 500ms ease-in-out 3;
+            }
+            @keyframes tour-hint {
+                50% {
+                    border-color: var(--lamp);
+                    box-shadow: var(--halo);
+                }
+            }
+            @media (prefers-reduced-motion: reduce) {
+                #tour-open.hint {
+                    animation: none;
+                }
+            }
             #tour {
                 position: fixed;
                 inset: 0;
@@ -4908,6 +4923,7 @@ vec3 tl_state() {
                     refreshLayer();
                     // fade in when the tiles and the lamps are on screen (or soon anyway)
                     const reveal = () => {
+                        if (!mapShown) hintTour();
                         document.getElementById("map").classList.add("ready");
                         mapShown = true;
                         bootDone();
@@ -6148,6 +6164,19 @@ self.onmessage=async({data})=>{
             document.addEventListener("keydown", () => { tourKeyboard = true; }, true);
             document.addEventListener("pointerdown", () => { tourKeyboard = false; }, true);
             document.getElementById("tour-open").addEventListener("click", startTour);
+            // the first visit (nothing stored yet) points at the tour once, after
+            // the map's 0.8s fade-in; only a flag, kept in this browser
+            function hintTour() {
+                try {
+                    if (localStorage.getItem("cantography-visited")) return;
+                    localStorage.setItem("cantography-visited", "1");
+                } catch {
+                    return;
+                }
+                const btn = document.getElementById("tour-open");
+                setTimeout(() => btn.classList.add("hint"), 800);
+                btn.addEventListener("animationend", () => btn.classList.remove("hint"), { once: true });
+            }
             document.getElementById("tour-stop").addEventListener("click", () => stopTour());
             // Escape stops the tour before anything else hears it
             document.addEventListener("keydown", (e) => {
