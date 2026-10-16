@@ -4,7 +4,7 @@ How the lamps, the timeline and the tour move: their sizes, colours, timings and
 the reasons behind them. Every value lives in `index.html`; the constant names
 below are the ones to search for.
 
-For the palette and the overall look, see [DESIGN.md](DESIGN.md).
+For the palette and the overall look, see [look.md](look.md); for the sound, [sound.md](sound.md).
 
 ---
 
@@ -168,28 +168,9 @@ start part-way through.
 | Year | fades | 500 ms |
 | Pointer | glides to each control it clicks; a ring pops on the click | 650 ms glide, 450 ms ring |
 | Interface | the legend, timeline and search fade away unless a scene shows them | 500 ms |
-| Basel, 1945 → 2025 | timeline replayed without flares, lamps just come on; tilted at 55°, turning 50° | 5 s play, 10 s orbit |
+| Basel, 1945 → 2025 | timeline replayed with its flashes, tilted at 55°, turning 40°; 2 s held at night, then night view off and one full turn | 4 s play, 2 s hold, 4 s turn |
 
 Escape, the stop button or the browser's back button stop the tour and put the
 view back as it was.
 
-## Tour music
-
-Made in the browser with Web Audio, no sound file; the code is `tourMusic` in
-`index.html`. Everything goes through a compressor (−18 dB, 3:1) and a 3.5 s
-reverb made of decaying noise.
-
-| Layer | What | Values |
-|---|---|---|
-| Drone | a saw an octave under the scene's root, a triangle two octaves under | gain 0.035 and 0.06, glides 0.8 s to a new root |
-| Chord | the scene's chord, two saws ±7 cents per note | gain 0.03, 2.2 s in, 2.5 s out |
-| Camera filter | lowpass on the drone and chord, from the zoom | 260 Hz × 2^((zoom − 7) / 1.8), 200–3000 Hz |
-| Pan | from the bearing | sin(bearing) × 0.5 |
-| Room | reverb send, from the pitch | 0.2 + pitch / 66 × 0.4 |
-| Flight | noise through a band sweeping 300 → 1600 → 300 Hz | peak gain 0.05, the flight's length |
-| Notes | timeline cut into ticks, at most 8 a second; a tick with lamps rings (fewer where few opened) | gain 0.12 × velocity, velocity 0.35–1 by log count |
-| Voices | AG bell (FM 3.5), GmbH pluck, association and foundation soft triangle, sole proprietor marimba (FM 4), other forms a light bell | decay 2.6 / 0.7 / 1.8 / 0.5 / 1.4 s |
-| Pulse | a low thump each year, five years or ten, at most about three a second | gain 0.16, 1.2 s |
-| Accents | the pointer's click, each letter typed, each new caption (a quiet bell) | tick gain 0.06 |
-| Basel | the chord grows | chord bus 0.8 → 1.4 over 10 s |
-| End | fade out | 2.5 s at the end, 0.8 s when stopped |
+The music of the tour and of the map is in [sound.md](sound.md).

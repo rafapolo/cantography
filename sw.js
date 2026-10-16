@@ -5,8 +5,14 @@ const V = 'cantography-dev';
 const PRECACHE = [
     './',
     './index.html',
-    './data/BE.json',
-    './data/BE_0.json.gz',
+    // under the commit, as the page asks for them (scripts/build.js writes it): a first
+    // visit isn't controlled until it ends, so these never passed through the worker
+    './data/BE.json?v=data-dev',
+    './data/BE_0.json.gz?v=data-dev',
+    './vendor/deck.mjs?v=data-dev',
+    './vendor/maplibre/maplibre-gl.mjs?v=6.14.0',
+    './vendor/maplibre/maplibre-gl-worker.mjs?v=6.14.0',
+    './vendor/maplibre/maplibre-gl.css?v=6.14.0',
 ];
 
 self.addEventListener('install', e => {
@@ -39,7 +45,8 @@ self.addEventListener('fetch', e => {
     // Page: network-first so deploys show up immediately; cache is the offline fallback
     if (e.request.mode === 'navigate') {
         e.respondWith(
-            fetch(e.request.url, { cache: 'no-cache', credentials: 'same-origin' }).then(res => {
+            // a redirect (a folder without its slash) handed back as it is: a followed one can't answer a page
+            fetch(e.request.url, { cache: 'no-cache', credentials: 'same-origin', redirect: 'manual' }).then(res => {
                 if (res.ok) keep(e, e.request, res.clone());
                 return res;
             }).catch(() => caches.match(e.request).then(hit => hit || caches.match('./index.html')))
@@ -55,7 +62,8 @@ self.addEventListener('fetch', e => {
             return fetch(url.origin === location.origin ? new Request(e.request, { cache: 'no-cache' }) : e.request).then(res => {
                 if (res.ok && res.type !== 'opaque') keep(e, e.request, res.clone());
                 return res;
-            }).catch(() => caches.match(e.request));
+            // offline, and the first visit's files never reached this cache: the HTTP cache's copy
+            }).catch(() => fetch(e.request, { cache: 'force-cache' }));
         })
     );
 });

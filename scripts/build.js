@@ -74,8 +74,11 @@ const sha = (process.env.GITHUB_SHA || Bun.spawnSync(["git", "rev-parse", "HEAD"
 // worker still answers, and a new page must not run on the old bundle from its cache
 const deckUrl = minified.match(/["']\.\/vendor\/deck\.mjs["']/);
 if (!deckUrl) throw new Error("index.html: ./vendor/deck.mjs import not found");
-writeFileSync(join(DIST, "index.html"), minified.replace(deckUrl[0], `"./vendor/deck.mjs?v=${sha}"`));
-const sw = readFileSync(join(ROOT, "sw.js"), "utf-8").replace(/^const V = '[^']*';/m, `const V = 'cantography-${sha}';`);
+// and the data's files: DATA_V in the page, the precached ones in sw.js
+const dataV = minified.match(/["']data-dev["']/);
+if (!dataV) throw new Error("index.html: DATA_V not found");
+writeFileSync(join(DIST, "index.html"), minified.replace(deckUrl[0], `"./vendor/deck.mjs?v=${sha}"`).replace(dataV[0], `"${sha}"`));
+const sw = readFileSync(join(ROOT, "sw.js"), "utf-8").replace(/^const V = '[^']*';/m, `const V = 'cantography-${sha}';`).replaceAll("?v=data-dev", `?v=${sha}`);
 if (!sw.includes(`cantography-${sha}`)) throw new Error("sw.js: cache name not found");
 // a classic script on its own, so its top-level names can be mangled too
 const swMin = await terser(sw, { toplevel: true, compress: { passes: 2 }, mangle: true, format: { comments: false } });

@@ -1425,12 +1425,12 @@
                 }
                 /* typing, the search takes the whole top row: beside four round buttons a
                    320px phone left the box a few letters wide */
-                #search-bar:focus-within,
+                #search-bar:has(#search-wrapper:focus-within),
                 #search-bar.held {
                     left: calc(16px + env(safe-area-inset-left));
                     right: calc(16px + env(safe-area-inset-right));
                 }
-                #search-bar:focus-within .mode-btn,
+                #search-bar:has(#search-wrapper:focus-within) .mode-btn,
                 #search-bar.held .mode-btn {
                     display: none;
                 }
@@ -1751,6 +1751,19 @@
             #names[aria-pressed="true"]::before {
                 background: currentColor;
             }
+            /* the map's sound: a note, struck through and dim while silent */
+            #sound::before {
+                content: "♪";
+                font-size: 12px;
+                line-height: 1;
+            }
+            #sound[aria-pressed="false"] {
+                color: var(--dim);
+            }
+            #sound[aria-pressed="false"]::before,
+            #sound[aria-pressed="false"] .chip-text {
+                text-decoration: line-through;
+            }
             #about-open::before {
                 content: "?";
                 /* drawn, not read: the button is "about", not "? about" */
@@ -1765,9 +1778,9 @@
                 line-height: 1;
                 letter-spacing: 0;
             }
-            /* mid widths: the open timeline leaves 330px beside it, too little for the
-               worded chips (about 350px), so they shrink to icons as on phones */
-            @media (min-width: 981px) and (max-width: 1400px) {
+            /* mid widths: the open timeline, centred and 640px wide, leaves too little
+               beside it for the worded chips (about 410px), so they shrink to icons as on phones */
+            @media (min-width: 981px) and (max-width: 1520px) {
                 body:has(#timeline:not([hidden])) .chip {
                     width: 28px;
                     padding: 0;
@@ -2363,6 +2376,12 @@
                     position: absolute;
                     inset: -10px;
                 }
+                /* side by side, 2px apart: grown only up and down, or EN took DE's edge */
+                .lang-btn::after,
+                #tour-stop::after,
+                #tour-sound::after {
+                    inset: -10px -1px;
+                }
             }
             /* printed (or saved as PDF), the glows came out as blurred squares */
             @media print {
@@ -2529,6 +2548,7 @@
             <button type="button" id="tilt" class="chip" aria-pressed="false"><span class="chip-text" data-i18n="tiltOff">top view</span></button>
             <button type="button" id="names" class="chip" aria-pressed="false"><span class="chip-text" data-i18n="names">names</span></button>
             <button type="button" id="tour-open" class="chip" aria-label="Play the tour" data-i18n-aria="tourPlay"><span class="chip-text">tour</span></button>
+            <button type="button" id="sound" class="chip" aria-pressed="true"><span class="chip-text" data-i18n="sound">sound</span></button>
             <button type="button" id="about-open" class="chip" aria-haspopup="dialog"><span class="chip-text" data-i18n="about">about</span></button>
         </div>
         <!-- phones: the view's buttons gather here, at the bottom (placeDock) -->
@@ -2662,6 +2682,7 @@
                     more: "weitere",
                     loadFailed: "{name} konnte nicht geladen werden.",
                     tlFailed: "Die Zeitachse konnte nicht geladen werden.",
+                    manyFailed: "{n} Downloads sind fehlgeschlagen.",
                     retry: "Erneut versuchen",
                     loadingCanton: "{name} wird geladen…",
                     mapUpdated: "Karte aktualisiert: {n} Firmen angezeigt",
@@ -2677,6 +2698,7 @@
                     country: "Schweiz",
                     tiltOn: "geneigt",
                     tiltOff: "von oben",
+                    sound: "Ton",
                     names: "Namen",
                     about: "Info",
                     aboutTitle: "Wie es gemacht ist",
@@ -2751,6 +2773,7 @@
                     more: "more",
                     loadFailed: "Failed to load {name}.",
                     tlFailed: "The timeline didn't load.",
+                    manyFailed: "{n} downloads failed.",
                     retry: "Retry",
                     loadingCanton: "Loading {name}…",
                     mapUpdated: "Map updated: {n} companies shown",
@@ -2766,6 +2789,7 @@
                     country: "Switzerland",
                     tiltOn: "tilted",
                     tiltOff: "top view",
+                    sound: "sound",
                     names: "names",
                     about: "about",
                     aboutTitle: "How it was made",
@@ -3453,6 +3477,7 @@ in float night_seed;
                     const el = document.getElementById(id);
                     el.addEventListener("input", (e) => {
                         night[name] = read(+e.target.value);
+                        tourMusic.knob(name, (el.value - el.min) / (el.max - el.min));
                         autoStop();
                         clearTimeout(autoTimer);
                         autoTimer = 0;
@@ -3486,6 +3511,7 @@ in float night_seed;
                 }
                 document.getElementById("knob-auto").addEventListener("click", () => {
                     setLocked(!knobsLocked);
+                    tourMusic.auto(!knobsLocked);
                     // back on auto, the sliders follow the screen right away
                     if (!knobsLocked) autoNow();
                 });
@@ -3655,7 +3681,7 @@ in float night_seed;
                 plane: { earth: "#0a0c11", water: "#05070b" },
                 // with the forms' colours the light is already up: a lighter slate, and
                 // lakes in a deep blue, darker than the land
-                colors: { earth: "#1a202b", water: "#12263d" },
+                colors: { earth: "#171d27", water: "#12263d" },
             };
             const ground = () => (nightView ? GROUND.plane : GROUND.colors);
             const WATER_PAINT = { water: "fill-color", waterway: "line-color" };
@@ -3735,6 +3761,9 @@ in float night_seed;
             // stalls a download rather than failing it, and the loading notice spun for ever.
             // A slow file still comes, however long it takes, as long as it keeps coming.
             // (copied into the workers as text: it uses nothing from outside)
+            // the data's files under the commit (scripts/build.js writes it): on the first visit
+            // after a deploy the old worker still answers, and must not hand the new page old data
+            const DATA_V = "data-dev";
             async function stallFetch(url) {
                 const c = new AbortController();
                 let t = setTimeout(() => c.abort(), 20000);
@@ -3781,10 +3810,10 @@ function parse(col,canton){
 // page's thread, and only the grouped points travel back
 async function gz(url){const r=await stallFetch(url);if(!r.ok)throw new Error('HTTP '+r.status+' '+url);return new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).json();}
 async function load(base,id){
-  const r=await stallFetch(base+'data/'+id+'.json');if(!r.ok)throw new Error('HTTP '+r.status+' '+id);const meta=await r.json();
+  const r=await stallFetch(base+'data/'+id+'.json?v=${DATA_V}');if(!r.ok)throw new Error('HTTP '+r.status+' '+id);const meta=await r.json();
   // { chunks: ["XX_0.json.gz", ...] } or { _chunks: N }
   const files=Array.isArray(meta.chunks)?meta.chunks:Array.from({length:meta._chunks},(_,i)=>id+'_'+i+'.json.gz');
-  const chunks=await Promise.all(files.map(f=>gz(base+'data/'+f)));
+  const chunks=await Promise.all(files.map(f=>gz(base+'data/'+f+'?v=${DATA_V}')));
   // one chunk (most cantons) is parsed as it came, without copying its columns
   if(chunks.length===1){const c=chunks[0];return parse({n:c.n,t:c.t,lat:c.lat,lng:c.lng,y:c.y||[]},id);}
   const col={n:[],t:[],lat:[],lng:[],y:[]};
@@ -3911,18 +3940,29 @@ self.onmessage=async({data:{id,cantonId,base}})=>{try{const c=await load(base,ca
                     refreshLayer();
                 });
             }
+            // a poor signal fails many downloads at once: one notice for all of them, its
+            // button retrying each, instead of 25 stacked on the same spot
+            let _failure = null;
             function showFailure(text, retryFn) {
-                const el = document.createElement("div");
+                if (_failure?.isConnected) {
+                    _failure._retries.push(retryFn);
+                    _failure.querySelector("span").textContent = tf("manyFailed", { n: _failure._retries.length });
+                    clearTimeout(_failure._timer);
+                    _failure._timer = setTimeout(() => _failure?.remove(), 8000);
+                    return;
+                }
+                const el = (_failure = document.createElement("div"));
+                el._retries = [retryFn];
                 el.className = "load-error";
                 el.setAttribute("role", "alert");
                 const msg = document.createElement("span");
                 msg.textContent = text;
                 const retry = document.createElement("button");
                 retry.textContent = t("retry");
-                retry.addEventListener("click", () => { el.remove(); retryFn(); });
+                retry.addEventListener("click", () => { el.remove(); for (const f of el._retries) f(); });
                 el.append(msg, retry);
                 document.body.appendChild(el);
-                setTimeout(() => el.remove(), 8000);
+                el._timer = setTimeout(() => el.remove(), 8000);
             }
 
             // keeps activeCantons and the canton list item (class + aria) in sync
@@ -3996,6 +4036,7 @@ self.onmessage=async({data:{id,cantonId,base}})=>{try{const c=await load(base,ca
                     } catch (e) {
                         if (countEl) countEl.textContent = "(–)";
                         showLoadError(canton);
+                        tourMusic.fail();
                         return [];
                     } finally {
                         _cantonLoads.delete(canton.id);
@@ -4003,6 +4044,8 @@ self.onmessage=async({data:{id,cantonId,base}})=>{try{const c=await load(base,ca
                         if (!_cantonLoads.size && map) updateLegendCounts();
                     }
                 })();
+                // its sound apart: a sound gone wrong must not fail a canton that loaded
+                p.then((points) => { if (cantonData[canton.id] === points) tourMusic.land(canton); }).catch(() => {});
                 _cantonLoads.set(canton.id, p);
                 return p;
             }
@@ -4207,7 +4250,7 @@ self.onmessage=async({data:{id,cantonId,base}})=>{try{const c=await load(base,ca
                 return best;
             }
             const cpuInfo = (pt) => {
-                const i = timelineOn ? -1 : cpuPick(pt.x, pt.y);
+                const i = timelineOn && tl ? -1 : cpuPick(pt.x, pt.y);
                 return { index: i, x: pt.x, y: pt.y, object: i >= 0 ? pointAt(i) : null };
             };
 
@@ -4670,7 +4713,8 @@ vec3 tl_state() {
                     extensions: [_dataFilter],
                     filterRange: [1, 1],
                     // only lit lamps have a size, so only they can be picked
-                    pickable: true,
+                    // garbled read-back (resistFingerprinting): no card rather than a wrong one
+                    pickable: gpuPickOk,
                     autoHighlight: false,
                     onHover: (info) => { if (!_touchMQ.matches && !crawling) tlShowCard(info); },
                     onClick: (info) => { tlShowCard(info, { pin: !_touchMQ.matches }); return true; },
@@ -4933,6 +4977,7 @@ vec3 tl_state() {
                 }
                 redrawLayer();
                 tlUpdateUi();
+                tourMusic.roamDay(tlDay);
                 tlFrame = requestAnimationFrame(tlTick);
             }
 
@@ -4978,8 +5023,10 @@ vec3 tl_state() {
                         console.error("timeline", e);
                         tlLoading = null;
                         document.getElementById("tl-date").textContent = "—";
-                        // said, with a way to try again, as a canton that failed is
+                        // said, with a way to try again, as a canton that failed is; shut meanwhile,
+                        // so the button and the map's own cards aren't left in a timeline with none
                         showFailure(t("tlFailed"), () => setTimeline(true));
+                        if (timelineOn) setTimeline(false);
                         return;
                     } finally {
                         hideProgress();
@@ -5002,17 +5049,19 @@ vec3 tl_state() {
             }
 
             function initTimelineUi() {
-                document.getElementById("btn-timeline").addEventListener("click", () => { userStep(); setTimeline(!timelineOn); });
+                document.getElementById("btn-timeline").addEventListener("click", () => { userStep(); tourMusic.timeline(!timelineOn); setTimeline(!timelineOn); });
                 document.getElementById("tl-play").addEventListener("click", () => tlSetPlaying(!tlPlaying));
                 const range = document.getElementById("tl-range");
                 const track = range.parentElement;
                 const tlGo = (day) => {
                     tlSetPlaying(false);
+                    const from = tlDay;
                     tlDay = clamp(day, tl.firstDay, tl.lastDay);
                     tlT = tlTimeAt(tlDay);
                     tlNudge();
                     redrawLayer();
                     tlUpdateUi();
+                    tourMusic.roamDay(tlDay, from);
                 };
                 // from 2018 the slider lands on the 1st of a month
                 const tlSeek = (f) => tlGo(tlSnapDay(tlDayAt(f * tl.tMax)));
@@ -5414,6 +5463,9 @@ vec3 tl_state() {
                     map.setStyle({ version: 8, sources: {}, layers: [{ id: "background", type: "background", paint: { "background-color": "#151B24" } }] });
                 });
 
+                // a wheel or a pinch wakes the map's sound too (a click or a key already did)
+                map.on("movestart", (e) => { if (e.originalEvent && !tourOn) tourMusic.roam(); });
+
                 map.on("load", async () => {
                     // Tint the OpenFreeMap base layers to match the app's dark-navy palette (--bg)
                     map.setPaintProperty("background", "background-color", "#151B24");
@@ -5506,6 +5558,7 @@ vec3 tl_state() {
                         if (!item) return;
                         const lbl = item.dataset.label;
                         userStep();
+                        tourMusic.pick(lbl, !activeLabels.has(lbl));
                         if (activeLabels.has(lbl)) {
                             activeLabels.delete(lbl);
                             item.classList.add("inactive");
@@ -5522,6 +5575,7 @@ vec3 tl_state() {
                     .getElementById("btn-select-all")
                     .addEventListener("click", () => {
                         userStep();
+                        tourMusic.pick(null, true);
                         colorAssignments.forEach((a) =>
                             activeLabels.add(a.label),
                         );
@@ -5535,6 +5589,7 @@ vec3 tl_state() {
                     .getElementById("btn-deselect-all")
                     .addEventListener("click", () => {
                         userStep();
+                        tourMusic.pick(null, false);
                         activeLabels.clear();
                         document
                             .querySelectorAll(".legend-item")
@@ -5553,6 +5608,7 @@ vec3 tl_state() {
                     .addEventListener("click", () => {
                         userStep();
                         setNightView(!nightView);
+                        tourMusic.night(nightView);
                     });
             }
 
@@ -5595,7 +5651,7 @@ vec3 tl_state() {
         <div style="border-top:1px solid rgba(255,255,255,0.06);margin-top:8px;padding-top:8px">
           <div style="display:flex;align-items:center;gap:6px">
             <span style="flex-shrink:0;width:10px;height:10px;border-radius:50%;background:${hex}"></span>
-            <span style="color:#fff;font-weight:500;font-size:13px">${escapeHtml(c.name || "…")}${c.year ? ` <span style="color:rgba(255,255,255,0.62);font-weight:400" title="${c.year}">'${String(c.year % 100).padStart(2, "0")}</span>` : ""}</span>
+            <span style="color:#fff;font-weight:500;font-size:13px">${escapeHtml(c.name || "…")}${c.year ? ` <span style="color:rgba(255,255,255,0.62);font-weight:400">${c.year}</span>` : ""}</span>
             ${link}
           </div>
           <div style="color:rgba(255,255,255,0.62);font-size:12px;margin-top:3px">${escapeHtml(labelText(c.label))}</div>
@@ -5663,7 +5719,7 @@ vec3 tl_state() {
             // phones: night view and timeline stay beside the search, the light and
             // the view's buttons gather in one bar at the bottom right; on wider
             // screens each goes back where it was (moving keeps their listeners)
-            const DOCK_IDS = ["toggle-light", "tilt", "names", "tour-open", "about-open"];
+            const DOCK_IDS = ["toggle-light", "tilt", "names", "tour-open", "sound", "about-open"];
             const _dockHome = new Map(DOCK_IDS.map((id) => {
                 const el = document.getElementById(id);
                 return [id, { parent: el.parentNode, next: el.nextSibling }];
@@ -5939,7 +5995,7 @@ self.onmessage=async({data})=>{
                     }
                 };
                 // blob workers resolve relative URLs against blob:, so pass an absolute one
-                _searchWorker.postMessage({ type: "load", url: new URL("data/search_index.json.gz", location.href).href });
+                _searchWorker.postMessage({ type: "load", url: new URL(`data/search_index.json.gz?v=${DATA_V}`, location.href).href });
             }
 
             function closeResults() {
@@ -6316,15 +6372,36 @@ self.onmessage=async({data})=>{
             ];
             const TOUR_VOICES = { Aktiengesellschaft: 0, "GmbH / SARL": 1, Stiftung: 2, Verein: 2, Einzelunternehmen: 3 };
             const TOUR_NOTES_PER_SEC = 8; // at most, while the timeline runs
+            const ROAM_LEVEL = 0.45; // the map's own sound, under the tour's 0.8
+            const ROAM_IDLE = 60000; // ms of rest before it sleeps
+            const MAX_BELLS = 16; // ringing at once, the oldest let go first
+            const BED = 0.7; // the drone, chords and wind: 3 dB down, the harmonics added for small speakers make it up
             const tourMusic = (() => {
                 const q = new URLSearchParams(location.search);
                 let ac = null, out, bus, padBus, padF, pan, wet, noise, click, dest, an;
+                // the mix: the bed (drone, chords, wind) under the data (bells, wet) and the
+                // interface (dry); the bed dips under what is said over it
+                let bed, dry, drift, bedDown = false, bedRest = 0;
+                const voices = [];
                 let drone = [], pads = [], key = TOUR_KEYS[0], sceneNo = 0;
                 let track = null, play = null, begun = false, live = false, rec = null;
                 // the suspend a stopped tour leaves pending: a tour reopened before it fires keeps its sound
                 let nap = 0;
-                // every tour starts with its music: ♪ turns it off for that tour only
+                // one ♪ for the whole page, on unless turned off, and kept for the next visit
+                const SOUND_KEY = "cantography-sound";
                 let on = true;
+                // filming (?rec=1) always records the music, whatever was chosen before
+                try { on = q.has("rec") || localStorage.getItem(SOUND_KEY) !== "off"; } catch {}
+                // outside the tour (roam): the drone, the wind of the camera, the legend's bells
+                let roaming = false, idle = 0, calm = 0, wind = null, last = null, rtrack = null, rplay = null;
+                // the light's knobs: the bed's tilt, its rest, and each knob's last step and tick
+                let lit = 1, litRest = 0;
+                const knobs = {};
+                // the visit: the first touch greeted once, the cantons landed, "all here" rung once,
+                // asleep (a bell wakes it) or away in another tab (it comes back by itself)
+                let greeted = false, readyRung = false, slept = false, away = false;
+                const landed = new Set();
+                let failedAt = -Infinity;
                 const stats = { notes: [], scene: 0 };
                 const hz = (m) => 440 * 2 ** ((m - 69) / 12);
                 // integers to [0, 1): the same tick always picks the same note
@@ -6338,26 +6415,62 @@ self.onmessage=async({data})=>{
                 const loud = () => ac && live && on;
 
                 function build() {
-                    // iOS mutes Web Audio under the silent switch unless the page asks to play as media
-                    if (navigator.audioSession) navigator.audioSession.type = "playback";
+                    // iOS: ambient, so the silent switch mutes the sound and gives it back by
+                    // itself (no page can read the switch), and it mixes with other apps' sound
+                    if (navigator.audioSession) navigator.audioSession.type = "ambient";
                     ac = new AudioContext();
                     ac.onstatechange = label;
+                    // out → below 30 Hz cut (no speaker plays it, it only eats headroom) →
+                    // the glue compressor → a limiter → a soft ceiling: nothing past 0 dBFS
+                    const hp = ac.createBiquadFilter();
+                    hp.type = "highpass";
+                    hp.frequency.value = 30;
                     const comp = ac.createDynamicsCompressor();
                     comp.threshold.value = -18;
                     comp.ratio.value = 3;
+                    const lim = ac.createDynamicsCompressor();
+                    lim.threshold.value = -3;
+                    lim.knee.value = 0;
+                    lim.ratio.value = 20;
+                    lim.attack.value = 0.002;
+                    lim.release.value = 0.1;
+                    const ceil = ac.createWaveShaper();
+                    ceil.curve = Float32Array.from({ length: 1025 }, (_, i) => Math.tanh(((i - 512) / 512) * 1.2) / Math.tanh(1.2));
                     out = ac.createGain();
                     out.gain.value = 0;
-                    out.connect(comp);
-                    comp.connect(ac.destination);
+                    out.connect(hp);
+                    hp.connect(comp);
+                    comp.connect(lim);
+                    // the limiter adds its own makeup gain (+6.4 dB measured on the drone): taken back
+                    const trim = ac.createGain();
+                    trim.gain.value = 0.48;
+                    lim.connect(trim);
+                    trim.connect(ceil);
+                    ceil.connect(ac.destination);
+                    // the recording and the meter hear what the speakers do
                     dest = ac.createMediaStreamDestination();
-                    comp.connect(dest);
+                    ceil.connect(dest);
                     an = ac.createAnalyser();
-                    comp.connect(an);
-                    // a room: 3.5 s of noise dying away, a little different on each side
-                    const len = ac.sampleRate * 3.5, ir = ac.createBuffer(2, len, ac.sampleRate);
+                    ceil.connect(an);
+                    // a room, a little different on each side: a few early reflections in the first
+                    // 70 ms, then 3.5 s of noise dying away, its highs first, as in a real hall.
+                    // Scaled to the energy of plain dying noise, so the camera's sends keep their level
+                    const sr = ac.sampleRate, len = Math.round(sr * 3.5), ir = ac.createBuffer(2, len, sr);
                     for (let c = 0; c < 2; c++) {
                         const d = ir.getChannelData(c);
-                        for (let i = 0; i < len; i++) d[i] = (hash(c, i) * 2 - 1) * (1 - i / len) ** 3;
+                        let ref = 0, lp = 0;
+                        for (let i = 0; i < len; i++) {
+                            const x = i / len, n = hash(c, i) * 2 - 1;
+                            ref += (n * (1 - x) ** 3) ** 2;
+                            lp += (0.9 - 0.8 * x) * (n - lp);
+                            d[i] = lp * (1 - x) ** 3 * Math.min(1, i / (0.012 * sr));
+                        }
+                        for (let k = 0; k < 8; k++)
+                            d[Math.round((0.008 + hash(c, k, 5) * 0.062) * sr)] += (hash(c, k, 6) < 0.5 ? -0.6 : 0.6) * (1 - k / 8);
+                        let e = 0;
+                        for (const v of d) e += v * v;
+                        const g = Math.sqrt(ref / e);
+                        for (let i = 0; i < len; i++) d[i] *= g;
                     }
                     const verb = ac.createConvolver();
                     verb.buffer = ir;
@@ -6376,7 +6489,34 @@ self.onmessage=async({data})=>{
                     padF = ac.createBiquadFilter();
                     padF.frequency.value = 400;
                     padBus.connect(padF);
-                    padF.connect(bus);
+                    bed = ac.createGain();
+                    bed.gain.value = BED;
+                    padF.connect(bed);
+                    // a phone or a laptop plays nothing under ~150 Hz: the drone's low notes
+                    // saturated on a side path, and only the harmonics they make (over 160 Hz)
+                    // added back, so the ear hears the bass it can't be played
+                    const drive = ac.createGain(), sat = ac.createWaveShaper(), over = ac.createBiquadFilter(), harm = ac.createGain();
+                    drive.gain.value = 8;
+                    sat.curve = Float32Array.from({ length: 1025 }, (_, i) => Math.tanh(((i - 512) / 512) * 3));
+                    sat.oversample = "2x";
+                    over.type = "highpass";
+                    over.frequency.value = 160;
+                    harm.gain.value = 0.2;
+                    padF.connect(drive);
+                    drive.connect(sat);
+                    sat.connect(over);
+                    over.connect(harm);
+                    harm.connect(bed);
+                    bed.connect(bus);
+                    dry = ac.createGain();
+                    dry.connect(out);
+                    // the held notes' tuning drifts slowly, each saw at its own pace: a pad that breathes
+                    drift = [0.07, 0.11].map((r) => {
+                        const g = ac.createGain();
+                        g.gain.value = 4;
+                        osc("sine", r, g, 0);
+                        return g;
+                    });
                     noise = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate);
                     noise.getChannelData(0).forEach((_, i, d) => { d[i] = hash(9, i) * 2 - 1; });
                     click = ac.createBuffer(1, ac.sampleRate * 0.025, ac.sampleRate);
@@ -6400,6 +6540,8 @@ self.onmessage=async({data})=>{
                     const os = types.map((type, k) => {
                         const o = osc(type, hz(m), g, t);
                         o.detune.value = k ? 7 : -7;
+                        drift[k].connect(o.detune);
+                        o.onended = () => drift[k].disconnect(o.detune);
                         return o;
                     });
                     return { g, os };
@@ -6410,13 +6552,36 @@ self.onmessage=async({data})=>{
                     v.g.gain.linearRampToValueAtTime(0, t + s);
                     v.os.forEach((o) => o.stop(t + s + 0.1));
                 }
+                // the bed a little under what is said over it, s seconds from t
+                function duck(t, to, s) {
+                    const base = BED * (bedDown ? 0.8 : 1);
+                    bed.gain.setTargetAtTime(base * to, t, 0.02);
+                    bed.gain.setTargetAtTime(base, t + s, 0.3);
+                }
+                // while the timeline plays, the bed sits 2 dB under its bells
+                function bedLow() {
+                    if (!bedDown) bed.gain.setTargetAtTime(BED * 0.8, ac.currentTime, 0.4);
+                    bedDown = true;
+                    clearTimeout(bedRest);
+                    bedRest = setTimeout(() => {
+                        bedDown = false;
+                        if (ac) bed.gain.setTargetAtTime(BED, ac.currentTime, 0.6);
+                    }, 600);
+                }
                 function bell(m, vel, kind, t) {
                     const [type, ratio, depth, dec, atk] = TOUR_TIMBRES[kind];
+                    // at most MAX_BELLS ringing: the oldest lets go, the newest is the one on screen
+                    const now = ac.currentTime;
+                    while (voices.length && voices[0].end < now) voices.shift();
+                    while (voices.length >= MAX_BELLS) voices.shift().sg.gain.setTargetAtTime(0, Math.max(now, t), 0.007);
+                    const sg = ac.createGain();
+                    sg.connect(bus);
+                    voices.push({ sg, end: t + dec });
                     const f = hz(m), g = ac.createGain();
                     g.gain.setValueAtTime(0, t);
                     g.gain.linearRampToValueAtTime(0.12 * vel, t + atk);
                     g.gain.exponentialRampToValueAtTime(1e-4, t + dec);
-                    g.connect(bus);
+                    g.connect(sg);
                     const c = osc(type, f, g, t, t + dec + 0.1);
                     if (ratio) {
                         const mg = ac.createGain();
@@ -6424,7 +6589,63 @@ self.onmessage=async({data})=>{
                         mg.gain.exponentialRampToValueAtTime(f * depth * 0.01 + 0.01, t + dec);
                         mg.connect(c.frequency);
                         osc("sine", f * ratio, mg, t, t + dec + 0.1);
+                        // a real bell's out-of-tune partial, high and short
+                        const pg = ac.createGain();
+                        pg.gain.setValueAtTime(0, t);
+                        pg.gain.linearRampToValueAtTime(0.03 * vel, t + atk);
+                        pg.gain.exponentialRampToValueAtTime(1e-4, t + dec * 0.35);
+                        pg.connect(sg);
+                        osc("sine", f * 2.76, pg, t, t + dec * 0.35 + 0.05);
                     }
+                }
+                // Three families, so the ear tells them apart: the data rings as bells (the
+                // timeline, a legal form picked), the interface taps dry and short, and the
+                // moments of a visit swell soft into the room.
+                // the interface: a click and a short tone, dry, x the pan
+                function tap(m, vel, t, x = 0) {
+                    const p = ac.createStereoPanner(), cg = ac.createGain(), g = ac.createGain(), src = ac.createBufferSource();
+                    p.pan.value = x;
+                    p.connect(dry);
+                    src.buffer = click;
+                    cg.gain.value = 0.05 * vel;
+                    src.connect(cg);
+                    cg.connect(p);
+                    src.start(t);
+                    g.gain.setValueAtTime(0, t);
+                    g.gain.linearRampToValueAtTime(0.07 * vel, t + 0.004);
+                    g.gain.exponentialRampToValueAtTime(1e-4, t + 0.15);
+                    g.connect(p);
+                    osc("triangle", hz(m), g, t, t + 0.2);
+                    duck(t, 0.85, 0.15);
+                }
+                // a moment: a sine and a triangle a little apart, in slow and out long, wet
+                function swell(m, vel, t, len = 1.6) {
+                    const g = ac.createGain();
+                    g.gain.setValueAtTime(0, t);
+                    g.gain.linearRampToValueAtTime(0.15 * vel, t + 0.12);
+                    g.gain.exponentialRampToValueAtTime(1e-4, t + len);
+                    g.connect(bus);
+                    osc("sine", hz(m), g, t, t + len + 0.1).detune.value = -4;
+                    osc("triangle", hz(m), g, t, t + len + 0.1).detune.value = 4;
+                }
+                // swells in a row, gap s apart
+                function arp(ms, gap, vel, t, len) {
+                    ms.forEach((m, i) => swell(m, vel, t + i * gap, len));
+                }
+                // the chord quickly up and the tonic two octaves over the root: done, all here
+                function cadence(t) {
+                    duck(t, 0.7, 1.5);
+                    arp(key.chord.map((n) => key.root + 12 + n), 0.08, 0.45, t, 1.4);
+                    swell(key.root + 24, 0.55, t + 0.5, 2.6);
+                }
+                // the first touch: three swells up the chord; with every canton already in,
+                // the tonic over them closes it, and the cadence is not rung again
+                function greet(t) {
+                    duck(t, 0.7, 1.2);
+                    arp(key.chord.slice(0, 3).map((n) => key.root + 12 + n), 0.18, 0.6, t, 1.8);
+                    if (landed.size < CANTONS.length) return;
+                    readyRung = true;
+                    swell(key.root + 24, 0.55, t + 0.6, 2.6);
                 }
                 // a low, soft beat when a year (or five, or ten) goes by
                 function pulse() {
@@ -6435,6 +6656,14 @@ self.onmessage=async({data})=>{
                     g.connect(bus);
                     const o = osc("sine", hz(key.root - 12) * 1.5, g, t, t + 1.3);
                     o.frequency.exponentialRampToValueAtTime(hz(key.root - 12), t + 0.08);
+                    // its third harmonic, short: the beat a small speaker can play
+                    const h = ac.createGain();
+                    h.gain.setValueAtTime(0, t);
+                    h.gain.linearRampToValueAtTime(0.05, t + 0.005);
+                    h.gain.exponentialRampToValueAtTime(1e-4, t + 0.25);
+                    h.connect(bus);
+                    const o3 = osc("sine", hz(key.root - 12) * 4.5, h, t, t + 0.3);
+                    o3.frequency.exponentialRampToValueAtTime(hz(key.root - 12) * 3, t + 0.08);
                 }
                 // resumed from a tap or a key yet still held: this browser won't play it, so no ♪.
                 // iOS's "interrupted" (a call, another app's sound) passes, and ♪ comes back once it runs
@@ -6442,14 +6671,19 @@ self.onmessage=async({data})=>{
                     const tapped = navigator.userActivation?.isActive;
                     let held = true;
                     ac.resume().then(() => { held = false; }, () => {});
-                    if (tapped) setTimeout(() => { if (held && on && ac.state === "suspended") document.getElementById("tour-sound").hidden = true; }, 1000);
+                    if (tapped) setTimeout(() => {
+                        if (held && on && ac.state === "suspended") for (const id of ["tour-sound", "sound"]) document.getElementById(id).hidden = true;
+                    }, 1000);
                 }
                 function label() {
-                    const btn = document.getElementById("tour-sound");
-                    // one word, struck through when silent: "♪ off" struck through read as on
-                    const playing = on && ac?.state === "running";
-                    btn.setAttribute("aria-pressed", playing ? "true" : "false");
-                    if (ac?.state === "running") btn.hidden = false;
+                    // one word, struck through when silent: "♪ off" struck through read as on.
+                    // A tour the browser still holds silent reads off; the map's ♪ says the choice
+                    const playing = on && (!tourOn || ac?.state === "running");
+                    for (const id of ["tour-sound", "sound"]) {
+                        const btn = document.getElementById(id);
+                        btn.setAttribute("aria-pressed", playing ? "true" : "false");
+                        if (ac?.state === "running") btn.hidden = false;
+                    }
                 }
                 // the sound comes up once the film runs (not while ?t= skips ahead)
                 function wake() {
@@ -6460,27 +6694,167 @@ self.onmessage=async({data})=>{
                     out.gain.setValueAtTime(out.gain.value, t);
                     out.gain.linearRampToValueAtTime(0.8, t + 1.5);
                 }
+                // the bed's filter: the camera's zoom, tilted by the brightness knob while it moves
+                function padTone(t, s) {
+                    padF.frequency.setTargetAtTime(clamp(260 * 2 ** ((map.getZoom() - 7) / 1.8), 200, 3000) * lit, t, s);
+                }
                 function camera() {
                     const t = ac.currentTime;
-                    padF.frequency.setTargetAtTime(clamp(260 * 2 ** ((map.getZoom() - 7) / 1.8), 200, 3000), t, 0.15);
+                    padTone(t, 0.15);
                     pan.pan.setTargetAtTime(Math.sin((map.getBearing() * Math.PI) / 180) * 0.5, t, 0.15);
                     wet.gain.setTargetAtTime(0.2 + (map.getPitch() / 66) * 0.4, t, 0.3);
                     wake();
+                    if (roaming) gust(t);
+                }
+                // roaming, the wind blows as fast as the map goes: pixels, zoom and turn per second
+                function gust(t) {
+                    const c = map.getCenter(), z = map.getZoom(), b = map.getBearing();
+                    if (last && t > last.t) {
+                        const a = map.project(last.c), n = map.project(c);
+                        const turn = Math.abs(b - last.b) % 360;
+                        // a zoom, the scroll wheel's move, counts double what a drag of as many pixels does
+                        const d = Math.hypot(a.x - n.x, a.y - n.y) + Math.abs(z - last.z) * 800 + Math.min(turn, 360 - turn) * 4;
+                        const v = clamp(d / Math.max(0.016, t - last.t) / 1500, 0, 1);
+                        wind.g.gain.setTargetAtTime(0.3 * Math.sqrt(v), t, 0.06);
+                        wind.bp.frequency.setTargetAtTime(300 + 1400 * v, t, 0.08);
+                    }
+                    last = { t, c, z, b };
+                    clearTimeout(calm);
+                    calm = setTimeout(() => { if (wind) wind.g.gain.setTargetAtTime(0, ac.currentTime, 0.4); }, 150);
+                    poke();
+                }
+                // asleep after a minute with nothing moving, ringing or picked
+                function poke() {
+                    clearTimeout(idle);
+                    idle = setTimeout(() => roamEnd(3), ROAM_IDLE);
+                }
+                function fade(level, s) {
+                    const t = ac.currentTime;
+                    out.gain.cancelScheduledValues(t);
+                    out.gain.setValueAtTime(out.gain.value, t);
+                    out.gain.linearRampToValueAtTime(level, t + s);
+                }
+                // the map's own sound, from the first touch, click or key: the opening's drone
+                // fadeIn: the level's ramp; the drone's own 2.2 s attack brings it in under the bells
+                function roamStart(fadeIn = 0.3) {
+                    if (!window.AudioContext || !map || !on || tourOn || begun || document.hidden) return;
+                    if (!ac) build();
+                    clearTimeout(nap);
+                    unlock();
+                    if (!roaming) {
+                        roaming = live = true;
+                        key = TOUR_KEYS[0];
+                        const t = ac.currentTime;
+                        for (const v of pads) release(v, t, 1);
+                        pads = [];
+                        padBus.gain.cancelScheduledValues(t);
+                        padBus.gain.setValueAtTime(0.8, t);
+                        // a tour stopped while loading hands its drone back still playing
+                        if (!drone.length) drone = [hold(key.root - 12, 0.035, t), hold(key.root - 24, 0.06, t, ["triangle"])];
+                        const src = ac.createBufferSource(), bp = ac.createBiquadFilter(), g = ac.createGain();
+                        src.buffer = noise;
+                        src.loop = true;
+                        bp.type = "bandpass";
+                        bp.Q.value = 1.5;
+                        bp.frequency.value = 300;
+                        g.gain.value = 0;
+                        src.connect(bp);
+                        bp.connect(g);
+                        g.connect(bed);
+                        src.start(t);
+                        wind = { src, bp, g };
+                        last = null;
+                        map.on("move", camera);
+                        camera();
+                        fade(ROAM_LEVEL, fadeIn);
+                        if (!greeted) greet(t + 0.05);
+                        // woken after a rest or ♪: one short bell
+                        else if (slept) tap(key.root + 12 + key.chord[1], 0.6, t + 0.05);
+                        greeted = true;
+                        slept = false;
+                    }
+                    poke();
+                    label();
+                }
+                // hand: the tour takes the drone on, still sounding (its opening plays the same notes)
+                function roamEnd(s, suspend = true, hand = false) {
+                    clearTimeout(idle);
+                    if (!roaming) return;
+                    roaming = live = false;
+                    rplay = null;
+                    map.off("move", camera);
+                    const t = ac.currentTime;
+                    wind.g.gain.setTargetAtTime(0, t, 0.1);
+                    wind.src.stop(t + s + 0.1);
+                    wind = null;
+                    if (hand) return;
+                    slept = true;
+                    fade(0, s);
+                    // falling asleep: the drone sinks to the root's bottom and the room holds its tail
+                    if (s >= 1) {
+                        for (const v of drone) v.os.forEach((o) => o.frequency.setTargetAtTime(hz(key.root - 24), t, s / 3));
+                        wet.gain.setTargetAtTime(0.6, t, s / 3);
+                    }
+                    for (const v of drone) v.os.forEach((o) => o.stop(t + s + 0.1));
+                    drone = [];
+                    if (suspend) {
+                        clearTimeout(nap);
+                        nap = setTimeout(() => { if (!roaming && !begun) ac.suspend().catch(() => {}); }, (s + 0.3) * 1000);
+                    }
+                }
+                // the lamps of some cantons and forms, counted by voice and summed day by day
+                function cumOf(cantonOn, labelOn, field) {
+                    const on8 = new Uint8Array(256), kind = new Uint8Array(256);
+                    for (const code in T_DECODE) {
+                        const c = code.charCodeAt(0);
+                        on8[c] = labelOn(T_DECODE[code]) ? 1 : 0;
+                        kind[c] = TOUR_VOICES[T_DECODE[code]] ?? 4;
+                    }
+                    const D = tl.lastDay + 2, days = tl[field];
+                    const cum = TOUR_TIMBRES.map(() => new Float32Array(D));
+                    for (let i = 0; i < tl.n; i++)
+                        if (cantonOn[tl.canton8[i]] && on8[tl.t8[i]] && days[i] < D - 1) cum[kind[tl.t8[i]]][days[i] + 1]++;
+                    for (const c of cum) for (let d = 1; d < D; d++) c[d] += c[d - 1];
+                    return cum;
+                }
+                // c: the lamps of a tick by voice; maybe one bell, a step or two along the scale
+                function ring(p, c, v, id, j) {
+                    const total = c.reduce((a, b) => a + b);
+                    // where few opened, fewer ring
+                    if (hash(id, j, 1) > 0.25 + 0.75 * v) return;
+                    let x = hash(id, j, 2) * total, kind = 0;
+                    while (kind < c.length - 1 && x >= c[kind]) x -= c[kind++];
+                    p.deg = clamp(p.deg + Math.floor(hash(id, j, 3) * 5) - 2, 0, 10);
+                    const sc = key.scale;
+                    const m = key.root + sc[p.deg % sc.length] + 12 * Math.floor(p.deg / sc.length) + TOUR_TIMBRES[kind][5] - (key.low ? 12 : 0);
+                    bell(m, 0.35 + 0.65 * v, kind, ac.currentTime);
+                    stats.notes[sceneNo] = (stats.notes[sceneNo] || 0) + 1;
                 }
 
                 return {
                     stats,
+                    get roaming() { return roaming; },
                     rms() {
                         if (!an) return 0;
                         const d = new Float32Array(an.fftSize);
                         an.getFloatTimeDomainData(d);
                         return Math.sqrt(d.reduce((s, x) => s + x * x, 0) / d.length);
                     },
+                    // the loudest sample now: under 1, nothing clips
+                    peak() {
+                        if (!an) return 0;
+                        const d = new Float32Array(an.fftSize);
+                        an.getFloatTimeDomainData(d);
+                        return d.reduce((m, x) => Math.max(m, Math.abs(x)), 0);
+                    },
                     // on the tour's click, while it still counts as the user's gesture
                     start() {
                         if (!window.AudioContext) return;
                         if (!ac) build();
                         clearTimeout(nap);
+                        // the map's drone goes on as the opening's: no cut between the two
+                        roamEnd(0.5, false, !tourSkipping());
+                        slept = false;
                         if (on) unlock();
                         label();
                     },
@@ -6492,7 +6866,7 @@ self.onmessage=async({data})=>{
                         stats.notes = [];
                         key = TOUR_KEYS[0];
                         const t = ac.currentTime;
-                        drone = [hold(key.root - 12, 0.035, t), hold(key.root - 24, 0.06, t, ["triangle"])];
+                        if (!drone.length) drone = [hold(key.root - 12, 0.035, t), hold(key.root - 24, 0.06, t, ["triangle"])];
                         map.on("move", camera);
                         camera();
                         if (q.has("rec") && window.MediaRecorder) {
@@ -6511,21 +6885,25 @@ self.onmessage=async({data})=>{
                         }
                     },
                     stop(finished) {
-                        // ♪ off lasts one tour: the next one, on this page too, starts with its music
-                        on = true;
+                        label();
                         if (!ac) return;
-                        // stopped while loading: nothing played, but start() woke the context
+                        // stopped while loading: nothing played, but start() woke the context;
+                        // the map's sound takes over, or it sleeps
                         if (!begun) {
                             clearTimeout(nap);
-                            nap = setTimeout(() => { if (!begun) ac.suspend().catch(() => {}); }, 300);
+                            nap = setTimeout(() => { if (!begun) on ? roamStart() : ac.suspend().catch(() => {}); }, 300);
                             return;
                         }
+                        // played to the end: a cadence, held a moment before the fade
+                        const sing = finished && loud();
                         begun = live = false;
                         play = track = null;
                         map.off("move", camera);
-                        const t = ac.currentTime, s = finished ? 2.5 : 0.8;
+                        const t = ac.currentTime, held = sing ? 1.2 : 0, s = held + (finished ? 2.5 : 0.8);
+                        if (sing) cadence(t);
                         out.gain.cancelScheduledValues(t);
                         out.gain.setValueAtTime(out.gain.value, t);
+                        out.gain.setValueAtTime(out.gain.value, t + held);
                         out.gain.linearRampToValueAtTime(0, t + s);
                         for (const v of [...pads, ...drone]) v.os.forEach((o) => o.stop(t + s + 0.1));
                         pads = [];
@@ -6536,13 +6914,23 @@ self.onmessage=async({data})=>{
                             setTimeout(() => r.stop(), s * 1000);
                             rec = null;
                         }
-                        nap = setTimeout(() => { if (!begun) ac.suspend(); }, (s + 0.3) * 1000);
+                        nap = setTimeout(() => {
+                            if (begun || roaming) return;
+                            if (on && !document.hidden) roamStart();
+                            else ac.suspend().catch(() => {});
+                        }, (s + 0.3) * 1000);
                     },
                     toggle() {
                         // blocked by the browser (a tour started from the link): the click lets it play
-                        if (on && ac && ac.state === "suspended") { unlock(); return; }
+                        if (tourOn && on && ac && ac.state === "suspended") { unlock(); return; }
+                        // on but never heard (no touch before it): ♪ plays it, not mutes it
+                        if (!tourOn && on && !ac) { roamStart(); label(); return; }
                         on = !on;
-                        if (ac) {
+                        try { localStorage.setItem(SOUND_KEY, on ? "on" : "off"); } catch {}
+                        if (!tourOn) {
+                            if (on) roamStart();
+                            else if (ac) roamEnd(0.3);
+                        } else if (ac) {
                             if (on) { unlock(); live = false; wake(); }
                             else {
                                 // the fade-in may still be climbing: cut it where it is
@@ -6578,18 +6966,9 @@ self.onmessage=async({data})=>{
                     // the lamps the notes come from: a canton, some forms, openings or closings,
                     // counted by voice and summed up day by day, so a span is two lookups
                     track(cantonId, labels, field = "o16") {
-                        const k = TL_CANTON_IDS.indexOf(cantonId), on8 = new Uint8Array(256), kind = new Uint8Array(256);
-                        for (const code in T_DECODE) {
-                            const c = code.charCodeAt(0);
-                            on8[c] = !labels || labels.includes(T_DECODE[code]) ? 1 : 0;
-                            kind[c] = TOUR_VOICES[T_DECODE[code]] ?? 4;
-                        }
-                        const D = tl.lastDay + 2, days = tl[field];
-                        const cum = TOUR_TIMBRES.map(() => new Float32Array(D));
-                        for (let i = 0; i < tl.n; i++)
-                            if (tl.canton8[i] === k && on8[tl.t8[i]] && days[i] < D - 1) cum[kind[tl.t8[i]]][days[i] + 1]++;
-                        for (const c of cum) for (let d = 1; d < D; d++) c[d] += c[d - 1];
-                        track = { cum, id: k * 2 + (field === "c16") };
+                        const k = TL_CANTON_IDS.indexOf(cantonId), cantonOn = new Uint8Array(256);
+                        cantonOn[k] = 1;
+                        track = { cum: cumOf(cantonOn, (l) => !labels || labels.includes(l), field), id: k * 2 + (field === "c16") };
                     },
                     // the timeline is about to run from d0 to d1 in ms: it is cut in ticks, at
                     // most TOUR_NOTES_PER_SEC a second, and each tick that saw lamps may ring
@@ -6609,6 +6988,7 @@ self.onmessage=async({data})=>{
                     day(d) {
                         const p = play;
                         if (!p || !loud()) return;
+                        bedLow();
                         const y = Math.floor(yearOf(d) / p.every);
                         if (y !== p.year) { p.year = y; pulse(); }
                         const jn = Math.min(p.n, Math.floor((d - p.d0) / p.step));
@@ -6616,19 +6996,102 @@ self.onmessage=async({data})=>{
                         p.j = Math.max(p.j, jn - 3);
                         for (; p.j < jn; p.j++) {
                             const c = p.counts(p.j), total = c.reduce((a, b) => a + b);
-                            if (!total) continue;
-                            const v = Math.log1p(total) / Math.log1p(p.max);
-                            // where few opened, fewer ring
-                            if (hash(track.id, p.j, 1) > 0.25 + 0.75 * v) continue;
-                            let x = hash(track.id, p.j, 2) * total, kind = 0;
-                            while (kind < c.length - 1 && x >= c[kind]) x -= c[kind++];
-                            // a step or two along the scale from the last note
-                            p.deg = clamp(p.deg + Math.floor(hash(track.id, p.j, 3) * 5) - 2, 0, 10);
-                            const sc = key.scale;
-                            const m = key.root + sc[p.deg % sc.length] + 12 * Math.floor(p.deg / sc.length) + TOUR_TIMBRES[kind][5] - (key.low ? 12 : 0);
-                            bell(m, 0.35 + 0.65 * v, kind, ac.currentTime);
-                            stats.notes[sceneNo]++;
+                            if (total) ring(p, c, Math.log1p(total) / Math.log1p(p.max), track.id, p.j);
                         }
+                    },
+                    // the map's sound, from a touch, a click or a key
+                    roam: roamStart,
+                    // the page hidden: the map's sound goes quiet at once, its room's tail let ring
+                    sleep() {
+                        away ||= roaming;
+                        if (ac) roamEnd(0.4);
+                    },
+                    // back to the page: what played comes back in a second, no bell; a browser
+                    // that won't resume without a touch (iOS) waits for the next one
+                    back() {
+                        if (!away) return;
+                        away = slept = false;
+                        roamStart(1);
+                    },
+                    // a canton's companies in: a soft pluck from where it lies, the plucks
+                    // building the chord; once all are in, the cadence (heard only after a touch)
+                    land(canton) {
+                        if (landed.has(canton.id)) return;
+                        landed.add(canton.id);
+                        if (!roaming) return;
+                        poke();
+                        const t = ac.currentTime, ch = key.chord, n = landed.size - 1;
+                        const x = map.project([canton.lng, canton.lat]).x / map.getContainer().clientWidth;
+                        tap(key.root + 12 + ch[n % ch.length] + 12 * (Math.floor(n / ch.length) % 2), 0.4, t, clamp(x * 2 - 1, -0.8, 0.8));
+                        if (landed.size >= CANTONS.length && !readyRung) {
+                            readyRung = true;
+                            cadence(t + 0.4);
+                        }
+                    },
+                    // a canton that failed: two low notes a tritone apart, short, out of the chord
+                    fail() {
+                        // a poor signal fails many at once: one alert for them all, as on screen
+                        if (!roaming || ac.currentTime - failedAt < 2) return;
+                        poke();
+                        const t = (failedAt = ac.currentTime);
+                        duck(t, 0.6, 0.5);
+                        [0, 6].forEach((d, i) => {
+                            const at = t + i * 0.16, g = ac.createGain();
+                            g.gain.setValueAtTime(0, at);
+                            g.gain.linearRampToValueAtTime(0.09, at + 0.01);
+                            g.gain.exponentialRampToValueAtTime(1e-4, at + 0.35);
+                            g.connect(dry);
+                            osc("triangle", hz(key.root - 12 + d), g, at, at + 0.4);
+                        });
+                    },
+                    // the user's timeline playing, or moved by hand from the day `from`: the
+                    // openings of the shown cantons and forms ring as in the tour, a tick at most
+                    // TOUR_NOTES_PER_SEC a second; by hand, back in time too
+                    roamDay(d, from) {
+                        if (!roaming || !tl) return;
+                        poke();
+                        bedLow();
+                        if (rtrack?.key !== tl.filterKey) {
+                            const cantonOn = new Uint8Array(256);
+                            TL_CANTON_IDS.forEach((id, k) => { cantonOn[k] = activeCantons.has(id) ? 1 : 0; });
+                            rtrack = { key: tl.filterKey, cum: cumOf(cantonOn, (l) => activeLabels.has(l), "o16") };
+                        }
+                        const now = ac.currentTime;
+                        const hand = from != null;
+                        // a fresh run, a jump back or a pause: count from here; a hand's first move
+                        // rings at once, from where it took the timeline
+                        if (!rplay || (!hand && d < rplay.d) || now - rplay.t > 0.5) {
+                            rplay = { d: hand ? from : d, t: now - 1 / TOUR_NOTES_PER_SEC, j: 0, deg: 7, max: 1 };
+                            if (!hand) { rplay.t = now; return; }
+                        }
+                        if (now - rplay.t < 1 / TOUR_NOTES_PER_SEC) return;
+                        const D = rtrack.cum[0].length - 1, at = (x) => clamp(Math.round(x), 0, D);
+                        const lo = at(Math.min(d, rplay.d)), hi = at(Math.max(d, rplay.d));
+                        const c = rtrack.cum.map((k) => k[hi] - k[lo]), total = c.reduce((a, b) => a + b);
+                        // a pulse every year, five or ten: at most about three a second
+                        const yps = Math.abs(d - rplay.d) / 365.25 / (now - rplay.t);
+                        const every = yps <= 3 ? 1 : yps <= 15 ? 5 : 10;
+                        if (Math.floor(yearOf(d) / every) !== Math.floor(yearOf(rplay.d) / every)) pulse();
+                        rplay.max = Math.max(rplay.max * 0.98, total);
+                        if (total) ring(rplay, c, Math.log1p(total) / Math.log1p(rplay.max), 99, rplay.j++);
+                        rplay.d = d;
+                        rplay.t = now;
+                    },
+                    // a form picked in the legend rings in its voice, high when it comes on and
+                    // low when it goes; all of them at once, the chord up or down
+                    pick(label, shown) {
+                        if (!roaming) return;
+                        poke();
+                        const t = ac.currentTime;
+                        if (label == null) {
+                            const ch = shown ? key.chord : [...key.chord].reverse();
+                            ch.forEach((n, i) => tap(key.root + 12 + n, 0.7, t + i * 0.07));
+                            return;
+                        }
+                        let h = 0;
+                        for (const ch of label) h += ch.charCodeAt(0);
+                        const kind = TOUR_VOICES[label] ?? 4, sc = key.scale;
+                        bell(key.root + sc[h % sc.length] + TOUR_TIMBRES[kind][5] + (shown ? 0 : -12), shown ? 0.7 : 0.4, kind, t);
                     },
                     // a flight: wind rising and falling through a sweeping band
                     flight(ms) {
@@ -6658,25 +7121,130 @@ self.onmessage=async({data})=>{
                         src.buffer = click;
                         g.gain.value = 0.06 * v;
                         src.connect(g);
-                        g.connect(bus);
+                        g.connect(dry);
                         src.start();
+                    },
+                    // night on: the lamps coming on, glass bells falling down the key's chord
+                    // from right to left as a warm low tone settles under them; off: the
+                    // reverse, rising left to right into a breath of bright air, like dawn
+                    night(on) {
+                        if (!roaming) return;
+                        poke();
+                        const t = ac.currentTime, ch = key.chord;
+                        duck(t, 0.7, 1);
+                        const up = [...ch.map((n) => n + 12), 24 + ch[0]];
+                        const seq = on ? [...up].reverse() : up;
+                        seq.forEach((n, i) => {
+                            const at = t + i * (0.06 - i * 0.005), x = i / (seq.length - 1);
+                            const f = hz(key.root + 12 + n), g = ac.createGain(), p = ac.createStereoPanner();
+                            p.pan.value = (on ? 1 - x : x) * 1.2 - 0.6;
+                            g.gain.setValueAtTime(0, at);
+                            g.gain.linearRampToValueAtTime(0.07 * (1 - i * 0.08), at + 0.015);
+                            g.gain.exponentialRampToValueAtTime(1e-4, at + 1.1);
+                            g.connect(p);
+                            p.connect(bus);
+                            const c = osc("sine", f, g, at, at + 1.2);
+                            // a touch of FM, dying fast: glass, not a bell
+                            const mg = ac.createGain();
+                            mg.gain.setValueAtTime(f * 0.6, at);
+                            mg.gain.exponentialRampToValueAtTime(f * 0.01, at + 0.25);
+                            mg.connect(c.frequency);
+                            osc("sine", f * 3.5, mg, at, at + 0.3);
+                        });
+                        const g = ac.createGain();
+                        g.connect(bus);
+                        if (on) {
+                            // the dark settling: the root two octaves down, in and out
+                            g.gain.setValueAtTime(0, t);
+                            g.gain.linearRampToValueAtTime(0.09, t + 0.25);
+                            g.gain.exponentialRampToValueAtTime(1e-4, t + 1.3);
+                            osc("sine", hz(key.root - 12), g, t, t + 1.4);
+                        } else {
+                            // the light coming: air through a high band, opening
+                            const src = ac.createBufferSource(), hp = ac.createBiquadFilter();
+                            src.buffer = noise;
+                            hp.type = "bandpass";
+                            hp.Q.value = 0.8;
+                            hp.frequency.setValueAtTime(2500, t);
+                            hp.frequency.exponentialRampToValueAtTime(7000, t + 0.4);
+                            g.gain.setValueAtTime(0, t);
+                            g.gain.linearRampToValueAtTime(0.025, t + 0.2);
+                            g.gain.linearRampToValueAtTime(0, t + 0.7);
+                            src.connect(hp);
+                            hp.connect(g);
+                            src.start(t);
+                            src.stop(t + 0.8);
+                        }
+                    },
+                    // the timeline: three quick ticks up the scale, a clock wound; shut, down it
+                    timeline(on) {
+                        if (!roaming) return;
+                        poke();
+                        const t = ac.currentTime, sc = key.scale;
+                        for (let i = 0; i < 3; i++) {
+                            const deg = on ? i * 2 : 4 - i * 2;
+                            tap(key.root + 24 + sc[deg % sc.length], 1, t + i * 0.07);
+                        }
+                    },
+                    // a light knob moved, f its place from 0 to 1: a dry tick every 5 %, a ratchet,
+                    // up the scale as it goes up; size runs down it, the bigger the lower. Each
+                    // end a low tap, a stop. Brightness also opens the bed's filter, 3 octaves
+                    // across, and lets it back half a second after the knob rests
+                    knob(name, f) {
+                        if (!roaming) return;
+                        poke();
+                        const t = ac.currentTime, n = Math.round(f * 20), k = (knobs[name] ||= { n: -1, at: -1 });
+                        if (name === "light") {
+                            lit = 2 ** ((f - 0.5) * 3);
+                            padTone(t, 0.05);
+                            clearTimeout(litRest);
+                            litRest = setTimeout(() => { lit = 1; padTone(ac.currentTime, 0.3); }, 500);
+                        }
+                        if (n === k.n) return;
+                        k.n = n;
+                        // a fast drag skips steps rather than rattling
+                        if (t - k.at < 0.04) return;
+                        k.at = t;
+                        const x = f * 0.8 - 0.4, sc = key.scale;
+                        if (n === 0 || n === 20) return tap(key.root, 0.8, t, x);
+                        const d = Math.round(((name === "light" ? n : 20 - n) / 20) * sc.length * 2);
+                        tap(key.root + 12 + 12 * Math.floor(d / sc.length) + sc[d % sc.length], 0.5, t, x);
+                    },
+                    // the light back on auto: two taps up the chord; held by hand: down
+                    auto(on) {
+                        if (!roaming) return;
+                        poke();
+                        const t = ac.currentTime, hi = key.root + 24, lo = key.root + 12 + key.chord[1];
+                        tap(on ? lo : hi, 0.7, t);
+                        tap(on ? hi : lo, 0.7, t + 0.07);
                     },
                     // a new caption: the chord's top note, quietly
                     chime() {
                         if (!loud()) return;
-                        bell(key.root + 24 + key.chord[key.chord.length - 1] % 12, 0.3, 4, ac.currentTime);
+                        tap(key.root + 24 + key.chord[key.chord.length - 1] % 12, 0.4, ac.currentTime);
                     },
                 };
             })();
             if (new URLSearchParams(location.search).get("music") === "debug") window.tourMusic = tourMusic;
-            document.getElementById("tour-sound").hidden = !window.AudioContext;
-            document.getElementById("tour-sound").addEventListener("click", () => tourMusic.toggle());
-            // a tour started from the link has no sound until the first click or key
-            // iOS lets sound out on a touch's end, not its start
+            for (const id of ["tour-sound", "sound"]) {
+                document.getElementById(id).hidden = !window.AudioContext;
+                document.getElementById(id).addEventListener("click", () => tourMusic.toggle());
+            }
+            // a tour started from the link has no sound until the first click or key, nor
+            // has the map; iOS lets sound out on a touch's end, not its start
             for (const ev of ["pointerdown", "pointerup", "keydown"])
-                document.addEventListener(ev, (e) => { if (tourOn && e.target.id !== "tour-sound") tourMusic.start(); }, true);
-            // back from another app or tab: iOS leaves the sound interrupted until asked again
-            const tourWakeSound = () => { if (tourOn && !document.hidden) tourMusic.start(); };
+                document.addEventListener(ev, (e) => {
+                    if (e.target.closest?.("#tour-sound, #sound")) return;
+                    if (tourOn) tourMusic.start();
+                    else if (ev !== "pointerdown") tourMusic.roam();
+                }, true);
+            // back from another app or tab: iOS leaves the sound interrupted until asked
+            // again; the map's sound waits for the next touch or move
+            const tourWakeSound = () => {
+                if (document.hidden) { if (!tourOn) tourMusic.sleep(); }
+                else if (tourOn) tourMusic.start();
+                else tourMusic.back();
+            };
             document.addEventListener("visibilitychange", tourWakeSound);
             addEventListener("pageshow", tourWakeSound);
             // the camera moves are part of the film: essential, so reduced motion doesn't

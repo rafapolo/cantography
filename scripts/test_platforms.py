@@ -213,8 +213,8 @@ def test_lamps_come_back_after_context_loss(pw, url):
 # ── the phone ─────────────────────────────────────────────────────────────────
 
 
-def phone(pw, device="iPhone SE"):
-    b = pw.webkit.launch()
+def phone(pw, device="iPhone SE", engine="webkit"):
+    b = launch(pw, engine)
     return b, page(b, **pw.devices[device])
 
 
@@ -226,6 +226,9 @@ def test_phone_search_box_has_room_and_rows_their_height(pw, url):
     pg.tap("#search-input")
     pg.keyboard.type("migros")
     pg.wait_for_selector(".search-result-item", timeout=20000)
+    # a later, longer list would redraw the rows mid-measure: wait for it to settle
+    pg.wait_for_function("""() => { const h = document.getElementById('search-results').scrollHeight;
+        const same = h === window._lastH; window._lastH = h; return same; }""", polling=400, timeout=20000)
     assert pg.evaluate("document.getElementById('search-input').getBoundingClientRect().width") > 150
     tops = []
     for y in (0, 9, 18, 27):
@@ -249,9 +252,11 @@ def test_phone_enter_typed_at_once_opens_first_hit(pw, url):
     b.close()
 
 
-def test_phone_clear_and_mode_buttons_answer_one_tap(pw, url):
-    """The widened search shrank on the ✕'s press, and hid the night and timeline buttons under the finger."""
-    b, pg = phone(pw, "iPhone 15 Pro")
+@pytest.mark.parametrize("engine,device", [("webkit", "iPhone 15 Pro"), ("chrome", "Pixel 7")])
+def test_phone_clear_and_mode_buttons_answer_one_tap(pw, url, engine, device):
+    """The widened search shrank on the ✕'s press, and hid the night and timeline buttons under the finger
+    (Chrome focuses a tapped button, and the search's :focus-within hid it before its click)."""
+    b, pg = phone(pw, device, engine)
     pg.goto(url + "/")
     ready(pg)
     pg.tap("#search-input")
@@ -262,8 +267,41 @@ def test_phone_clear_and_mode_buttons_answer_one_tap(pw, url):
     time.sleep(0.6)
     assert pg.evaluate("document.getElementById('search-input').value") == ""
     pg.tap("#map", position={"x": 200, "y": 500})
+    night = pg.evaluate("document.getElementById('btn-night-view').classList.contains('active')")
+    pg.tap("#btn-night-view")
+    time.sleep(0.4)
+    assert pg.evaluate("document.getElementById('btn-night-view').classList.contains('active')") != night
     pg.tap("#btn-timeline")
     pg.wait_for_function("document.getElementById('timeline').getBoundingClientRect().height > 0", timeout=20000)
+    b.close()
+
+
+def test_narrow_window_keeps_the_mode_buttons_on_tab(pw, url):
+    """At 500px (or 400% zoom) the night button took the focus and vanished, and Enter did nothing."""
+    b = launch(pw, "chrome")
+    pg = page(b, viewport={"width": 500, "height": 800})
+    pg.goto(url + "/")
+    ready(pg)
+    pg.focus("#btn-night-view")
+    assert pg.evaluate("document.activeElement.id") == "btn-night-view"
+    before = pg.evaluate("document.getElementById('btn-night-view').classList.contains('active')")
+    pg.keyboard.press("Enter")
+    time.sleep(0.3)
+    assert pg.evaluate("document.getElementById('btn-night-view').classList.contains('active')") != before
+    b.close()
+
+
+def test_language_buttons_keep_their_own_taps(pw, url):
+    """The EN button's widened target covered a third of DE's."""
+    b, pg = phone(pw, "iPhone 13")
+    pg.goto(url + "/")
+    ready(pg)
+    pg.tap("#toggle-legend")
+    time.sleep(0.8)
+    hit = pg.evaluate("""[...document.querySelectorAll('.lang-btn')].filter(b => b.offsetParent).map(b => {
+        const r = b.getBoundingClientRect();
+        return [0.1, 0.5, 0.9].map(f => document.elementFromPoint(r.x + r.width * f, r.y + r.height / 2)?.closest('.lang-btn') === b) })""")
+    assert hit and all(all(h) for h in hit)
     b.close()
 
 
@@ -308,7 +346,8 @@ def test_sound_off_at_once_and_asleep_after_an_early_stop(pw, url):
     time.sleep(0.25)
     pg.click("#tour-stop")
     time.sleep(1.5)
-    assert pg.evaluate("tourMusic.rms()") == 0
+    # the tour's music is gone: silence, or only the map's own sound taking over
+    assert pg.evaluate("tourMusic.roaming || tourMusic.rms() === 0")
     pg.click("#tour-open")
     time.sleep(12)
     assert pg.evaluate("tourMusic.rms()") > 0
@@ -449,4 +488,135 @@ def test_embedded_map_lets_the_article_scroll(pw, url):
         time.sleep(0.2)
     time.sleep(1)
     assert pg.evaluate("scrollY") > 0
+    b.close()
+
+
+def test_night_and_timeline_have_their_own_sound(pw, url):
+    """The map's sound rings for the night and the timeline turned on and off."""
+    b = launch(pw, "chrome", args=["--autoplay-policy=no-user-gesture-required"])
+    pg = page(b)
+    errors = []
+    pg.on("pageerror", lambda e: errors.append(str(e)))
+    pg.goto(url + "/?music=debug")
+    ready(pg)
+    pg.mouse.click(640, 400)
+    time.sleep(3)
+    assert pg.evaluate("tourMusic.roaming")
+    # the loudest of 0.8 s, against the 0.8 s before (the drone and the room's tail)
+    peak = """new Promise(r => { let m = 0; const id = setInterval(() => m = Math.max(m, tourMusic.rms()), 20);
+        setTimeout(() => { clearInterval(id); r(m) }, 800) })"""
+    # (shut, the timeline's own notes stop under its cue: only the three others are measured)
+    for btn in ("#btn-night-view", "#btn-night-view", "#btn-timeline"):
+        time.sleep(3)
+        quiet = pg.evaluate(peak)
+        pg.click(btn)
+        assert pg.evaluate(peak) > quiet * 1.2
+    pg.click("#btn-timeline")
+    time.sleep(1)
+    assert not errors
+    b.close()
+
+
+def test_the_visit_has_its_moments(pw, url):
+    """The first touch rings, a hidden page sleeps and comes back by itself, a failed canton sounds."""
+    b = launch(pw, "chrome", args=["--autoplay-policy=no-user-gesture-required"])
+    pg = page(b)
+    errors = []
+    pg.on("pageerror", lambda e: errors.append(str(e)))
+    pg.goto(url + "/?music=debug")
+    ready(pg)
+    peak = """new Promise(r => { let m = 0; const id = setInterval(() => m = Math.max(m, tourMusic.rms()), 20);
+        setTimeout(() => { clearInterval(id); r(m) }, 800) })"""
+    pg.mouse.click(640, 400)
+    greeting = pg.evaluate(peak)
+    time.sleep(3)
+    assert greeting > pg.evaluate(peak) * 1.2
+    pg.evaluate("tourMusic.sleep()")
+    time.sleep(1)
+    assert not pg.evaluate("tourMusic.roaming")
+    pg.evaluate("tourMusic.back()")
+    time.sleep(1.5)
+    assert pg.evaluate("tourMusic.roaming") and pg.evaluate("tourMusic.rms()") > 0
+    pg.evaluate("tourMusic.fail()")
+    time.sleep(0.5)
+    assert not errors
+    b.close()
+
+
+def test_the_timeline_never_clips(pw, url):
+    """The limiter at the end of the chain: the timeline's bells over the bed stay under 0 dBFS."""
+    b = launch(pw, "chrome", args=["--autoplay-policy=no-user-gesture-required"])
+    pg = page(b)
+    pg.goto(url + "/?music=debug")
+    ready(pg)
+    pg.mouse.click(640, 400)
+    pg.click("#btn-timeline")
+    for _ in range(30):
+        pg.click("#tl-play")
+        time.sleep(0.5)
+        if pg.evaluate("document.getElementById('tl-play').dataset.i18nAria") == "tlPause":
+            break
+        time.sleep(1)
+    loudest = pg.evaluate("""new Promise(r => { let m = 0; const id = setInterval(() => m = Math.max(m, tourMusic.peak()), 20);
+        setTimeout(() => { clearInterval(id); r(m) }, 6000) })""")
+    assert 0 < loudest < 0.99
+    b.close()
+
+
+def test_moving_the_timeline_by_hand_rings(pw, url):
+    """Dragged, the timeline was silent: only its play rang the openings, and never back in time."""
+    b = launch(pw, "chrome", args=["--autoplay-policy=no-user-gesture-required"])
+    pg = page(b)
+    pg.goto(url + "/?music=debug#tl=1990-01-01")
+    ready(pg)
+    pg.mouse.click(640, 300)
+    for _ in range(30):
+        if pg.evaluate("document.getElementById('tl-date').textContent") == "1990":
+            break
+        time.sleep(1)
+    notes = "tourMusic.stats.notes.reduce((a, b) => a + (b || 0), 0)"
+    r = pg.locator(".tl-track").bounding_box()
+    y = r["y"] + r["height"] / 2
+
+    def drag(x0, x1):
+        before = pg.evaluate(notes)
+        pg.mouse.move(r["x"] + x0 * r["width"], y)
+        pg.mouse.down()
+        for i in range(1, 21):
+            pg.mouse.move(r["x"] + (x0 + (x1 - x0) * i / 20) * r["width"], y)
+            time.sleep(0.05)
+        pg.mouse.up()
+        return pg.evaluate(notes) - before
+
+    assert drag(0.3, 0.9) > 0
+    time.sleep(1)
+    assert drag(0.9, 0.3) > 0
+    b.close()
+
+
+def test_first_tap_on_sound_plays_it(pw, url):
+    """♪ showed on before any touch, silent; tapping it to hear it turned it off for good."""
+    b = launch(pw, "chrome", args=["--autoplay-policy=no-user-gesture-required"])
+    pg = page(b)
+    pg.goto(url + "/?music=debug")
+    ready(pg)
+    pg.click("#sound")
+    time.sleep(0.5)
+    assert pg.evaluate("tourMusic.roaming")
+    assert pg.evaluate("document.getElementById('sound').getAttribute('aria-pressed')") == "true"
+    assert pg.evaluate("localStorage.getItem('cantography-sound')") != "off"
+    pg.click("#sound")
+    time.sleep(0.5)
+    assert pg.evaluate("document.getElementById('sound').getAttribute('aria-pressed')") == "false"
+    b.close()
+
+
+def test_wide_screen_at_zoom_6_keeps_its_light(pw, url):
+    """At 1920px and wider, zoom 6's empty margins passed for a sparse view: light 0.016 → 1.5."""
+    b = launch(pw, "chrome")
+    pg = page(b, viewport={"width": 2560, "height": 1340})
+    pg.goto(url + "/#z=6&ll=46.80,8.23")
+    ready(pg)
+    time.sleep(3)
+    assert float(pg.inner_text("#knob-light-out")) < 0.1
     b.close()

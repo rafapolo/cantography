@@ -64,7 +64,7 @@ The **clock** button next to the search opens the timeline at the bottom of the 
 What the timeline cannot show: companies deleted **before 2018** (no source lists them with an address), and moves before 2018 — a company sits at its current address for its whole life.
 
 ### The tour
-The **▶ tour** button among the chips at the bottom right plays a ~70 s film of the map that also shows how to use it, with music made in the browser as it plays. **♪ sound** turns the music off or on and is hidden where the browser can't play it; **✕ esc** or **Esc** stops the tour and puts the map back the way it was. Open `?tour=1` to start it on its own. The scenes, the music and the link options are in [tour.md](tour.md).
+The **▶ tour** button among the chips at the bottom right plays a ~70 s film of the map that also shows how to use it, with music made in the browser as it plays. The map has the same music under the visitor's own moves, filters and timeline, from the first click or touch: **♪ sound** among the chips (in the dock on phones) or beside **✕ esc** turns it off or on, the choice is kept, and on iPhone the silent switch mutes it; ♪ is hidden where the browser can't play it; **✕ esc** or **Esc** stops the tour and puts the map back the way it was. Open `?tour=1` to start it on its own. The scenes, the music and the link options are in [design/tour.md](design/tour.md).
 
 ### On a phone
 The search takes the whole top row; night view and timeline stack on the right under the legend button. The panels and the company card open as bottom sheets — tap the corner icons to open them and the map to close them. A pinch on the map zooms the map; elsewhere it zooms the page, for anyone who needs the text larger. On desktop, the **‹** and **›** arrows in each panel header slide it out of the way.
@@ -88,7 +88,7 @@ The map tiles (the street map underneath) come from [OpenFreeMap](https://openfr
 
 ## Technical notes
 
-For those curious about how it works under the hood. The look and every colour are in [DESIGN.md](DESIGN.md); the motion, sizes, timings and the tour's music in [EFFECTS.md](EFFECTS.md); the tour scene by scene in [tour.md](tour.md).
+For those curious about how it works under the hood. How it looks, moves and sounds is in [design/](design/README.md): every colour in [look.md](design/look.md), the motion, sizes and timings in [motion.md](design/motion.md), the music and sounds in [sound.md](design/sound.md), the tour scene by scene in [tour.md](design/tour.md).
 
 - **One list of today's companies** feeds both views: `scripts/canton_files.py` writes the 26 canton files and the search index from LINDAS, so at the end of the timeline every lit lamp sits on a map point
 - **Entry year** (the *'98*): the cantonal register's date, else the SHAB new entry, else an estimate from the order of the register ids (`scripts/opening_dates.py`); known for 99.99% of companies
