@@ -1647,6 +1647,23 @@
                 line-height: 1;
                 letter-spacing: 0;
             }
+            /* mid widths: the open timeline leaves 330px beside it, too little for the
+               worded chips (about 350px), so they shrink to icons as on phones */
+            @media (min-width: 981px) and (max-width: 1400px) {
+                body:has(#timeline:not([hidden])) .chip {
+                    width: 28px;
+                    padding: 0;
+                    border-radius: 50%;
+                }
+                body:has(#timeline:not([hidden])) .chip-text {
+                    position: absolute;
+                    width: 1px;
+                    height: 1px;
+                    overflow: hidden;
+                    clip: rect(0, 0, 0, 0);
+                    white-space: nowrap;
+                }
+            }
             @media (max-width: 980px) {
                 /* phones: the chips live in the dock */
                 .chips {
