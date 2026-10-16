@@ -3325,7 +3325,7 @@ in float night_seed;
                 // jumped from 0.016 to 1.5
                 const box = Math.min(size, (Math.ceil((bx1 - bx0) * per) + 1) * (Math.ceil((by1 - by0) * per) + 1));
                 // cx: the lamps' middle across the screen, -1 left to 1 right
-                return { lit, size, cx: seen ? ((sx / seen - x0) / (x1 - x0)) * 2 - 1 : 0, px: cell * world, gap: (cell * world) / Math.sqrt(lit / size), boxGap: (cell * world) / Math.sqrt(lit / box) };
+                return { lit, size, seen, cx: seen ? ((sx / seen - x0) / (x1 - x0)) * 2 - 1 : 0, px: cell * world, gap: (cell * world) / Math.sqrt(lit / size), boxGap: (cell * world) / Math.sqrt(lit / box) };
             }
 
             function autoLook() {
@@ -3411,6 +3411,10 @@ in float night_seed;
                     amount: Math.min(1, Math.sqrt((glow / s.size) * 4)),
                     focus: clamp((top / lamps - 0.06) / 0.3, 0, 1),
                     x: s.cx,
+                    // the beat: close in (zoom 9 → 13) on many companies (per megapixel of
+                    // screen, so a phone counts as a desktop: 100 → 2000, on a log scale)
+                    beat: clamp((map.getZoom() - 9) / 4, 0, 1)
+                        * clamp(Math.log(s.seen / ((innerWidth * innerHeight) / 1e6) / 100) / Math.log(2000 / 100), 0, 1),
                     night: nightView,
                 };
             }
@@ -6771,7 +6775,7 @@ self.onmessage=async({data})=>{
                 // the root, a square an octave up a hair apart so they beat, a fluorescent
                 // tube's flicker; gathered light opens its buzz and sparks. No pitch ever
                 // moves: a chord gliding between voicings sounded like a fire engine
-                const hum = { amount: 0, x: 0, wet: 0, night: true, bus: null, filter: null, pan: null, oscs: [], beat: 0, next: 0, n: 0 };
+                const hum = { amount: 0, beat: 0, x: 0, wet: 0, night: true, bus: null, filter: null, pan: null, oscs: [], clock: 0, next: 0, n: 0 };
                 function humStart(t) {
                     const bus = ac.createGain(), trem = ac.createGain(), depth = ac.createGain(), lfo = ac.createOscillator();
                     bus.gain.value = 0;
@@ -6799,19 +6803,21 @@ self.onmessage=async({data})=>{
                     hum.bus = bus;
                     hum.next = t + 0.5;
                     hum.n = 0;
-                    clearInterval(hum.beat);
-                    hum.beat = setInterval(humBeat, 100);
+                    clearInterval(hum.clock);
+                    hum.clock = setInterval(humBeat, 100);
                 }
-                // a still map at night keeps a beat, the timeline's year pulse on a 120 bpm grid:
-                // every 4 beats where little is lit, every 2, then every one as the light fills
-                // the screen. A playing timeline beats its own years instead
+                // a still map keeps a beat, the timeline's year pulse on a 120 bpm grid, stronger
+                // and denser the closer in on a crowded place: none from above, every 4 beats,
+                // every 2, then every one in a city's streets by day; at night the heart rests,
+                // half as often and softer. A playing timeline beats its own years instead
                 const BEAT = 0.5;
                 function humBeat() {
-                    const t = ac.currentTime, a = hum.amount;
-                    const every = a < 0.05 ? 0 : a < 0.2 ? 4 : a < 0.4 ? 2 : 1;
+                    const t = ac.currentTime, b = hum.beat;
+                    const every = (b < 0.1 ? 0 : b < 0.35 ? 4 : b < 0.65 ? 2 : 1) * (hum.night ? 2 : 1);
+                    const vel = hum.night ? 0.3 + 0.35 * b : 0.35 + 0.5 * b;
                     if (hum.next < t) hum.next = t + 0.05;
                     for (; hum.next < t + 0.2; hum.next += BEAT, hum.n++) {
-                        if (every && hum.night && !(rplay && t - rplay.t < 1) && hum.n % every === 0) pulse(hum.next, 0.6);
+                        if (every && !(rplay && t - rplay.t < 1) && hum.n % every === 0) pulse(hum.next, vel);
                     }
                 }
                 function humEnd(t, s) {
@@ -6820,8 +6826,8 @@ self.onmessage=async({data})=>{
                     for (const o of hum.oscs) o.stop(t + s + 0.1);
                     hum.oscs = [];
                     hum.bus = null;
-                    clearInterval(hum.beat);
-                    hum.amount = hum.wet = 0;
+                    clearInterval(hum.clock);
+                    hum.amount = hum.beat = hum.wet = 0;
                 }
                 // a spark: a few ms of noise, high and dry, from near where the light is
                 function spark(t) {
@@ -7380,12 +7386,14 @@ self.onmessage=async({data})=>{
                     },
                     roams: () => roaming,
                     // the light on screen (glowStats): the hum's level, buzz, side and sparks;
-                    // by day the lamps are off, so a fifth of it stays, soft and without sparks
+                    // by day the lamps are off, so a fifth of it stays, soft and without sparks;
+                    // the beat goes on, the busy day's, and rests at night
                     glow(g) {
                         if (!roaming || !hum.bus) return;
                         const t = ac.currentTime;
                         hum.amount = g.amount;
                         hum.x = g.x;
+                        hum.beat = g.beat;
                         hum.night = g.night;
                         hum.wet = 0.15 * (1 - g.focus);
                         hum.bus.gain.setTargetAtTime(g.amount * 0.9 * (g.night ? 1 : 0.2), t, 1.2);
