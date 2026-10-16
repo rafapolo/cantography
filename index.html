@@ -3793,32 +3793,43 @@ self.onmessage=async({data:{id,cantonId,base}})=>{try{const c=await load(base,ca
             // when the points, the filters or the view change (buildLayer runs every
             // twinkle frame, and an unchanged data object costs deck nothing)
             let _layerData = null, _layerDataKey = "";
+            // the filter and the colors hang on what is picked, not on night view: turning
+            // it on or off swaps the arrays instead of walking every point again
+            let _layerFilter = null, _layerFilterKey = "", _layerRgba = null;
             function layerData() {
                 syncAllPoints();
-                const key = `${_allPointsKey}|${_filterVersion}|${nightView}`;
-                if (key === _layerDataKey) return _layerData;
-                _layerDataKey = key;
                 const labelMask = activeLabelMask();
                 const on = cantonsOn();
+                const filterKey = `${_allPointsKey}|${labelMask}|${on.join("")}`;
+                const key = `${filterKey}|${nightView}`;
+                if (key === _layerDataKey) return _layerData;
+                _layerDataKey = key;
                 const { n, cols, cantonIx, mask } = allPoints;
-                const filter = new Float32Array(n);
-                for (let i = 0; i < n; i++) filter[i] = on[cantonIx[i]] && mask[i] & labelMask ? 1 : 0;
+                if (filterKey !== _layerFilterKey) {
+                    _layerFilterKey = filterKey;
+                    _layerFilter = new Float32Array(n);
+                    for (let i = 0; i < n; i++) _layerFilter[i] = on[cantonIx[i]] && mask[i] & labelMask ? 1 : 0;
+                    _layerRgba = null;
+                }
+                const filter = _layerFilter;
                 const attributes = { getPosition: allPoints.position, getFilterValue: { value: filter, size: 1 } };
                 // night view: no color per point, so the layer's single night color applies
                 if (!nightView) {
-                    // the forms' colors turned down to about an ember's light
-                    const rgba = new Uint8ClampedArray(4 * n);
-                    let gi = 0;
-                    for (const c of cols)
-                        for (let i = 0; i < c.n; i++, gi++) {
-                            if (!filter[gi]) continue;
-                            const rgb = pointRgb(c, i, labelMask);
-                            rgba[4 * gi] = rgb[0] * LAMP_TONE;
-                            rgba[4 * gi + 1] = rgb[1] * LAMP_TONE;
-                            rgba[4 * gi + 2] = rgb[2] * LAMP_TONE;
-                            rgba[4 * gi + 3] = 255;
-                        }
-                    attributes.getFillColor = { value: rgba, size: 4, normalized: true };
+                    if (!_layerRgba) {
+                        // the forms' colors turned down to about an ember's light
+                        const rgba = (_layerRgba = new Uint8ClampedArray(4 * n));
+                        let gi = 0;
+                        for (const c of cols)
+                            for (let i = 0; i < c.n; i++, gi++) {
+                                if (!filter[gi]) continue;
+                                const rgb = pointRgb(c, i, labelMask);
+                                rgba[4 * gi] = rgb[0] * LAMP_TONE;
+                                rgba[4 * gi + 1] = rgb[1] * LAMP_TONE;
+                                rgba[4 * gi + 2] = rgb[2] * LAMP_TONE;
+                                rgba[4 * gi + 3] = 255;
+                            }
+                    }
+                    attributes.getFillColor = { value: _layerRgba, size: 4, normalized: true };
                 }
                 return (_layerData = { length: n, attributes });
             }
