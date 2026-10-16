@@ -4467,7 +4467,7 @@ vec3 tl_state() {
             }
 
             function initTimelineUi() {
-                document.getElementById("btn-timeline").addEventListener("click", () => setTimeline(!timelineOn));
+                document.getElementById("btn-timeline").addEventListener("click", () => { userStep(); setTimeline(!timelineOn); });
                 document.getElementById("tl-play").addEventListener("click", () => tlSetPlaying(!tlPlaying));
                 const range = document.getElementById("tl-range");
                 const track = range.parentElement;
@@ -4483,7 +4483,7 @@ vec3 tl_state() {
                 const tlSeek = (f) => tlGo(tlSnapDay(tlDayAt(f * tl.tMax)));
                 // a year before 2018 and a month after, however compressed the strip is there
                 const tlStep = (dir) => tlGo(tlStepDay(Math.floor(tlDay), dir));
-                const tlRelease = () => { tlSettle(); updateUrl(); };
+                const tlRelease = () => { tlSettle(); userStep(); updateUrl(); };
                 range.addEventListener("input", () => { if (tl) tlSeek(+range.value / TL_RANGE_STEPS); });
                 range.addEventListener("change", tlRelease);
                 range.addEventListener("keyup", tlSettle);
@@ -4492,6 +4492,7 @@ vec3 tl_state() {
                     if (!dir || !tl) return;
                     e.preventDefault();
                     tlStep(dir);
+                    userStep();
                     updateUrl();
                 });
                 // drag on the histogram: the bars sit 8px in from each side
@@ -4546,8 +4547,9 @@ vec3 tl_state() {
             }
 
             // ── Shareable state in the URL hash ──────────────────────────────────
-            // #z=11.5&ll=46.95,7.44&c=BE,ZH&off=3,7&night=1
-            // (off = indexes into colorAssignments of legal forms switched off)
+            // #z=11.5&ll=46.95,7.44&off=3,7&cm=1&tl=2020-03-01
+            // (off = indexes into colorAssignments of legal forms switched off,
+            // cm = the colour map instead of night view)
             function readUrlState() {
                 const h = new URLSearchParams(location.hash.slice(1));
                 const st = {};
@@ -4560,6 +4562,7 @@ vec3 tl_state() {
                 if (h.has("c")) st.cantons = c;
                 const off = (h.get("off") || "").split(",").filter((i) => /^\d+$/.test(i)).map((i) => colorAssignments[+i]?.label).filter(Boolean);
                 if (off.length) st.labelsOff = off;
+                st.night = h.get("cm") !== "1";
                 // tl=YYYY-MM-DD; a bare number is an old link: days since 2018-01-01
                 const tlq = h.get("tl") || "";
                 if (/^\d{4}-\d{2}-\d{2}$/.test(tlq)) {
@@ -4570,7 +4573,13 @@ vec3 tl_state() {
             }
             const urlState = readUrlState();
 
-            let _urlTimer = null;
+            // ── History: every filter and selection is a step back and forward ──────
+            // a user's pick pushes an entry, a pan or a zoom only rewrites the current
+            // one, so the back button undoes picks instead of leaving the app
+            let _urlTimer = null, _pushNext = false;
+            function userStep() {
+                if (!tourOn) _pushNext = true;
+            }
             function updateUrl() {
                 // the tour's filters and flights are not a view to share
                 if (!map || tourOn) return;
@@ -4582,10 +4591,85 @@ vec3 tl_state() {
                     h.set("ll", `${c.lat.toFixed(4)},${c.lng.toFixed(4)}`);
                     const off = colorAssignments.flatMap((a, i) => (activeLabels.has(a.label) ? [] : [i]));
                     if (off.length) h.set("off", off.join(","));
+                    if (!nightView) h.set("cm", "1");
                     if (timelineOn) h.set("tl", tlIsoDay(tlDay));
                     // URLSearchParams escapes the commas; they are safe in a fragment
-                    history.replaceState(null, "", location.pathname + location.search + "#" + h.toString().replace(/%2C/g, ","));
+                    const hash = "#" + h.toString().replace(/%2C/g, ",");
+                    // a step only when the filters or the view changed (the camera too: a
+                    // canton or a search hit flies there); an open sheet's entry is reused
+                    const push = _pushNext && hash !== location.hash;
+                    _pushNext = false;
+                    if (push && !history.state?.sheet) history.pushState(null, "", location.pathname + location.search + hash);
+                    else history.replaceState(history.state, "", location.pathname + location.search + hash);
                 }, 250);
+            }
+
+            function setNightView(on) {
+                // lit: night view, the ember lamps; off: the legal forms' colors
+                nightView = on;
+                const btn = document.getElementById("btn-night-view");
+                btn.classList.toggle("active", on);
+                btn.setAttribute("aria-pressed", on ? "true" : "false");
+                paintGround();
+                refreshLayer();
+            }
+
+            // Phones: an open bottom sheet, a company card, the about box or the tour
+            // get an entry of their own, so back closes them before it undoes a pick
+            function overlayOpen() {
+                const tt = document.getElementById("tooltip");
+                const card = tt.style.display && tt.style.display !== "none" && (tt.classList.contains("pinned") || _touchMQ.matches);
+                return !!(card || tourOn || document.getElementById("about").open
+                    || document.querySelector("#canton-panel.open, #legend.open, #light-panel.open"));
+            }
+            function closeOverlays() {
+                if (tourOn) stopTour();
+                hideTooltip();
+                closeSheets();
+                document.getElementById("about").close();
+            }
+            let _backing = false;
+            function syncOverlayHistory() {
+                if (_backing) return;
+                const open = overlayOpen();
+                if (open && !history.state?.sheet) history.pushState({ sheet: 1 }, "", location.href);
+                // shut by its own button: drop the entry it opened
+                else if (!open && history.state?.sheet) { _backing = true; history.back(); }
+            }
+            function initHistory() {
+                const obs = new MutationObserver(() => queueMicrotask(syncOverlayHistory));
+                for (const id of ["canton-panel", "legend", "light-panel", "tooltip"])
+                    obs.observe(document.getElementById(id), { attributes: true, attributeFilter: ["class", "style"] });
+                obs.observe(document.getElementById("about"), { attributes: true, attributeFilter: ["open"] });
+                obs.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+                window.addEventListener("popstate", () => {
+                    _backing = false;
+                    clearTimeout(_urlTimer);
+                    _pushNext = false;
+                    if (overlayOpen() && !history.state?.sheet) {
+                        const touring = tourOn;
+                        closeOverlays();
+                        // the tour puts the view back itself
+                        if (touring) return;
+                    }
+                    applyUrlState(readUrlState());
+                });
+            }
+            // a step back or forward: the view and the filters of that entry
+            function applyUrlState(st) {
+                if (!map) return;
+                if (st.center) {
+                    const c = map.getCenter();
+                    if (Math.abs(c.lng - st.center[0]) > 1e-4 || Math.abs(c.lat - st.center[1]) > 1e-4 || Math.abs(map.getZoom() - (st.zoom ?? map.getZoom())) > 0.01)
+                        map.jumpTo({ center: st.center, zoom: st.zoom ?? map.getZoom() });
+                }
+                const off = new Set(st.labelsOff ?? []);
+                if (colorAssignments.some((a) => activeLabels.has(a.label) === off.has(a.label)))
+                    tourForms(colorAssignments.map((a) => a.label).filter((l) => !off.has(l)));
+                if (st.night !== nightView) setNightView(st.night);
+                if (st.timelineDay != null) {
+                    if (!timelineOn || Math.round(tlDay) !== st.timelineDay) setTimeline(true, st.timelineDay).then(() => tlSetPlaying(false));
+                } else if (timelineOn) setTimeline(false);
             }
 
             // ── Boot ───────────────────────────────────────────────────────────────
@@ -4602,6 +4686,14 @@ vec3 tl_state() {
                     el?.classList.add("inactive");
                     el?.setAttribute("aria-checked", "false");
                 }
+                // and the colour map instead of night view
+                if (!urlState.night) {
+                    nightView = false;
+                    document.getElementById("btn-night-view").classList.remove("active");
+                    document.getElementById("btn-night-view").setAttribute("aria-pressed", "false");
+                    document.body.classList.remove("plane");
+                }
+                initHistory();
 
                 // Build canton list
                 const cantonEl = document.getElementById("canton-items");
@@ -4824,6 +4916,7 @@ vec3 tl_state() {
                         const item = e.target.closest(".legend-item");
                         if (!item) return;
                         const lbl = item.dataset.label;
+                        userStep();
                         if (activeLabels.has(lbl)) {
                             activeLabels.delete(lbl);
                             item.classList.add("inactive");
@@ -4839,6 +4932,7 @@ vec3 tl_state() {
                 document
                     .getElementById("btn-select-all")
                     .addEventListener("click", () => {
+                        userStep();
                         colorAssignments.forEach((a) =>
                             activeLabels.add(a.label),
                         );
@@ -4851,6 +4945,7 @@ vec3 tl_state() {
                 document
                     .getElementById("btn-deselect-all")
                     .addEventListener("click", () => {
+                        userStep();
                         activeLabels.clear();
                         document
                             .querySelectorAll(".legend-item")
@@ -4867,13 +4962,8 @@ vec3 tl_state() {
                 document
                     .getElementById("btn-night-view")
                     .addEventListener("click", () => {
-                        // lit: night view, the ember lamps; off: the legal forms' colors
-                        nightView = !nightView;
-                        const btn = document.getElementById("btn-night-view");
-                        btn.classList.toggle("active", nightView);
-                        btn.setAttribute("aria-pressed", nightView ? "true" : "false");
-                        paintGround();
-                        refreshLayer();
+                        userStep();
+                        setNightView(!nightView);
                     });
             }
 
@@ -5122,7 +5212,9 @@ vec3 tl_state() {
 
             // canton switched on or off from the list: fly to it, so the change is seen
             function revealCanton(canton) {
-                if (map) flyTo({ center: [canton.lng, canton.lat], zoom: Math.max(map.getZoom(), 10) });
+                if (!map) return;
+                userStep();
+                flyTo({ center: [canton.lng, canton.lat], zoom: Math.max(map.getZoom(), 10) });
             }
 
             // Escape: close a pinned card, then the mobile bottom sheets
@@ -5343,6 +5435,7 @@ self.onmessage=async({data})=>{
                 const { name, cantonId } = hit;
                 const cantons = hit.cantons || [cantonId];
                 const approx = hit.lat !== undefined ? [hit.lng, hit.lat] : hit.point.position;
+                userStep();
 
                 // every location of the name, across all its cantons
                 function resolvePts() {
@@ -5503,6 +5596,8 @@ self.onmessage=async({data})=>{
             function tourProgress() {
                 if (!tourOn) return;
                 const f = Math.min(1, (performance.now() - tourT0) / TOUR_MS);
+                // at 0:00 the line goes at once, before the curtains open
+                if (f >= 1) { document.getElementById("tour-progress").hidden = true; return; }
                 document.querySelector("#tour-progress i").style.transform = `scaleX(${f})`;
                 const left = Math.ceil((TOUR_MS * (1 - f)) / 1000);
                 document.getElementById("tour-left").textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
@@ -5831,6 +5926,7 @@ self.onmessage=async({data})=>{
                     tourV = 0;
                     tourSkip = tourSeek * 1000;
                     tourSeek = 0;
+                    document.getElementById("tour-progress").hidden = false;
                     tourProgress();
                     await tourScenes(run);
                 } catch (e) {
@@ -5956,7 +6052,7 @@ self.onmessage=async({data})=>{
                 await tourTimeline(run, false);
                 tourFly(home, 2500);
                 await tourWait(run, 4000);
-                document.querySelector("#tour-progress i").style.transform = "scaleX(1)";
+                document.getElementById("tour-progress").hidden = true;
             }
 
             // a tour that plays to the end leaves the legend open (on desktop, as the boot
@@ -5990,6 +6086,7 @@ self.onmessage=async({data})=>{
                 tourYear("");
                 tourPointerOff();
                 const ui = document.getElementById("tour");
+                document.getElementById("tour-progress").hidden = true;
                 ui.classList.remove("on");
                 document.body.classList.remove("touring", "tour-legend", "tour-tl", "tour-search");
                 setTimeout(() => {
