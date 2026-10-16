@@ -12,7 +12,9 @@ const PRECACHE = [
 self.addEventListener('install', e => {
     self.skipWaiting();
     e.waitUntil(
-        caches.open(V).then(c => c.addAll(PRECACHE).catch(() => {}))
+        // past the browser's HTTP cache (max-age=600 on GitHub Pages): else a visit made
+        // minutes before a deploy fills the new cache with the old files, kept a whole deploy
+        caches.open(V).then(c => c.addAll(PRECACHE.map(u => new Request(u, { cache: 'reload' }))).catch(() => {}))
     );
 });
 
@@ -25,16 +27,20 @@ self.addEventListener('activate', e => {
     self.clients.claim();
 });
 
+// keep a copy without letting a full disk turn into an unhandled error
+const keep = (e, req, res) => e.waitUntil(caches.open(V).then(c => c.put(req, res)).catch(() => {}));
+
 self.addEventListener('fetch', e => {
     if (e.request.method !== 'GET') return;
+    // the base map's tiles, styles and fonts keep their own HTTP caching: copies here
+    // grew without end and froze OpenFreeMap's tileset for a whole deploy
+    const url = new URL(e.request.url);
+    if (url.origin !== location.origin) return;
     // Page: network-first so deploys show up immediately; cache is the offline fallback
     if (e.request.mode === 'navigate') {
         e.respondWith(
-            fetch(e.request).then(res => {
-                if (res.ok) {
-                    const clone = res.clone();
-                    caches.open(V).then(c => c.put(e.request, clone));
-                }
+            fetch(e.request.url, { cache: 'no-cache', credentials: 'same-origin' }).then(res => {
+                if (res.ok) keep(e, e.request, res.clone());
                 return res;
             }).catch(() => caches.match(e.request).then(hit => hit || caches.match('./index.html')))
         );
@@ -45,11 +51,9 @@ self.addEventListener('fetch', e => {
     e.respondWith(
         caches.match(e.request).then(hit => {
             if (hit) return hit;
-            return fetch(e.request).then(res => {
-                if (res.ok && res.type !== 'opaque') {
-                    const clone = res.clone();
-                    caches.open(V).then(c => c.put(e.request, clone));
-                }
+            // revalidated (a 304 when unchanged), never the HTTP cache's copy from before the deploy
+            return fetch(url.origin === location.origin ? new Request(e.request, { cache: 'no-cache' }) : e.request).then(res => {
+                if (res.ok && res.type !== 'opaque') keep(e, e.request, res.clone());
                 return res;
             }).catch(() => caches.match(e.request));
         })

@@ -1,6 +1,6 @@
 # Tour: the script
 
-The tour is a ~70 s camera ride made for the Swiss Viz Awards video. It also shows how to use the site: a drawn pointer clicks the real controls. To play it, use the **▶ tour** button among the chips at the bottom right, or open `?tour=1`, which starts on its own once the map has loaded; add `&t=<seconds>` (e.g. `?tour=1&t=54` for Basel) to start about there, the scenes before it run through at once. **Esc** or **✕ esc** stop the tour and put the filters, the timeline and night view back the way they were.
+The tour is a ~70 s camera ride made for the Swiss Viz Awards video. It also shows how to use the site: a drawn pointer clicks the real controls. To play it, use the **▶ tour** button among the chips at the bottom right, or open `?tour=1`, which starts on its own once the map has loaded; add `&t=<seconds>` (e.g. `?tour=1&t=54` for Basel) to start about there, the scenes before it run through at once. Once the tour starts, `tour` and `t` leave the address, so a reload opens the map rather than the film again. **Esc** or **✕ esc** stop the tour and put the filters, the timeline and night view back the way they were.
 
 This file describes what happens in each scene. To change something, edit it here and ask for the change in the code: the scenes live in `tourScenes()`, in `index.html`. The timings, gains and voices of the music are in [EFFECTS.md](EFFECTS.md#tour-music); the palette and the look in [DESIGN.md](DESIGN.md).
 

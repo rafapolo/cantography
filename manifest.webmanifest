@@ -1,0 +1,14 @@
+{
+    "name": "Cantography",
+    "short_name": "Cantography",
+    "description": "Every one of Switzerland’s registered companies on its building, with a timeline since 1883.",
+    "start_url": "./",
+    "scope": "./",
+    "display": "standalone",
+    "background_color": "#10131a",
+    "theme_color": "#10131a",
+    "icons": [
+        { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml" },
+        { "src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+    ]
+}

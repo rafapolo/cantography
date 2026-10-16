@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 // Build script: minify index.html (inline CSS + JS) → dist/
-// Also bundles deck.gl into vendor/, and copies it, sw.js and all data/ assets to dist/
+// Also bundles deck.gl into vendor/, minifies sw.js, and copies them and all data/ assets to dist/
 
 import { minify } from "html-minifier-terser";
 import { minify as terser } from "terser";
@@ -13,6 +13,12 @@ const DIST = join(ROOT, "dist");
 // from scratch, so nothing removed from the site lingers in dist/
 rmSync(DIST, { recursive: true, force: true });
 mkdirSync(DIST, { recursive: true });
+
+// ── 0a. MapLibre, served from the site rather than unpkg.com: a blocker or a CDN
+// outage took the whole map down with it. Its module loads its worker beside it.
+const MAPLIBRE = join(ROOT, "node_modules/maplibre-gl/dist");
+mkdirSync(join(ROOT, "vendor/maplibre"), { recursive: true });
+for (const file of ["maplibre-gl.mjs", "maplibre-gl-worker.mjs", "maplibre-gl.css"]) copyFileSync(join(MAPLIBRE, file), join(ROOT, "vendor/maplibre", file));
 
 // ── 0. deck.gl, only the three classes the page uses ─────────────────────────
 // vendor/ is served as is by the dev server too, so the bundle lands there first
@@ -59,22 +65,28 @@ const minified = await minify(src, {
     sortClassName: false,
 });
 
-writeFileSync(join(DIST, "index.html"), minified);
-
 // ── 2. Service worker, its cache named after the commit ──────────────────────
 // A new name per deploy makes sw.js differ byte-wise, so browsers install the new
 // worker, which drops the old caches. GITHUB_SHA in CI, else the checkout's HEAD.
 const sha = (process.env.GITHUB_SHA || Bun.spawnSync(["git", "rev-parse", "HEAD"], { cwd: ROOT }).stdout.toString().trim() || "dev").slice(0, 8);
+
+// deck.gl's bundle under the commit too: on the first visit after a deploy the old
+// worker still answers, and a new page must not run on the old bundle from its cache
+const deckUrl = minified.match(/["']\.\/vendor\/deck\.mjs["']/);
+if (!deckUrl) throw new Error("index.html: ./vendor/deck.mjs import not found");
+writeFileSync(join(DIST, "index.html"), minified.replace(deckUrl[0], `"./vendor/deck.mjs?v=${sha}"`));
 const sw = readFileSync(join(ROOT, "sw.js"), "utf-8").replace(/^const V = '[^']*';/m, `const V = 'cantography-${sha}';`);
 if (!sw.includes(`cantography-${sha}`)) throw new Error("sw.js: cache name not found");
-writeFileSync(join(DIST, "sw.js"), sw);
+// a classic script on its own, so its top-level names can be mangled too
+const swMin = await terser(sw, { toplevel: true, compress: { passes: 2 }, mangle: true, format: { comments: false } });
+writeFileSync(join(DIST, "sw.js"), swMin.code);
 
 // ── 3. Copy static assets ─────────────────────────────────────────────────────
 // only what the page fetches: registered.json.gz and opening_dates.json.gz are inputs
 // of the data pipeline, and sample.jpg is the README's picture
 const PIPELINE_ONLY = new Set(["registered.json.gz", "opening_dates.json.gz"]);
 cpSync(join(ROOT, "data"), join(DIST, "data"), { recursive: true, filter: (src) => !PIPELINE_ONLY.has(basename(src)) });
-for (const file of ["mini.jpg", "favicon.svg", "favicon.png", "apple-touch-icon.png"]) copyFileSync(join(ROOT, file), join(DIST, file));
+for (const file of ["mini.jpg", "favicon.svg", "favicon.png", "apple-touch-icon.png", "manifest.webmanifest"]) copyFileSync(join(ROOT, file), join(DIST, file));
 cpSync(join(ROOT, "vendor"), join(DIST, "vendor"), { recursive: true });
 
 // ── 4. Report sizes ───────────────────────────────────────────────────────────

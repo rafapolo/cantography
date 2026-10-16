@@ -76,7 +76,7 @@ Fonts load from Google Fonts without blocking the first paint
 | ![](design/swatches/ffd6aa.svg) | `#ffd6aa` | `--spark-raw` | the hot core of glows (`--lit`, `--halo`) |
 | ![](design/swatches/ede3d1.svg) | `#ede3d1` | `--lamp`, `--lamp-raw` | primary text and icons; panel hairlines at 14 % (`--hair`) and 32 % (`--hair-hi`) |
 | ![](design/swatches/cfc5b4.svg) | `#cfc5b4` | `--soft` | secondary text, idle buttons |
-| ![](design/swatches/8f8473.svg) | `#8f8473` | `--dim` | muted labels |
+| ![](design/swatches/a39783.svg) | `#a39783` | `--dim` | muted labels |
 
 Glows are layered `box-shadow` and `text-shadow` stacks: spark at the centre,
 ember around it (`--lit`, `--halo`, `--aura`).
