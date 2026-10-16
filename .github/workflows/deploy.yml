@@ -7,6 +7,7 @@ on:
     # so a docs-only push would make every returning visitor fetch the data again
     paths-ignore:
       - '**.md'
+      - 'design/**'
       - 'scripts/*.py'
       - 'scripts/*.sh'
   workflow_dispatch:
