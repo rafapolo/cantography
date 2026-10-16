@@ -3115,7 +3115,9 @@ in float night_seed;
 
             function autoSoon() {
                 if (knobsLocked || autoTimer) return;
-                autoTimer = setTimeout(autoNow, Math.max(0, AUTO_EVERY - (performance.now() - autoLast)));
+                // a running timeline walks every lamp for each look, and the look eases anyway
+                const every = tlPlaying || tlMoving ? 2 * AUTO_EVERY : AUTO_EVERY;
+                autoTimer = setTimeout(autoNow, Math.max(0, every - (performance.now() - autoLast)));
             }
             function autoNow() {
                 autoTimer = 0;
