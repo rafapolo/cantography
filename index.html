@@ -6494,13 +6494,14 @@ self.onmessage=async({data})=>{
                 await tourPickForms(run, BE);
                 tourShow("legend", "tl");
                 tourCaption("timeline", "Play the timeline: every opening since 1883 and closing since 2018.");
-                await tourWait(run, 500);
+                // the longest line of the film: time to read it before the play
+                await tourWait(run, 2000);
                 await tourClick(run, document.getElementById("tl-play"), false);
                 tourPointerOff();
                 tourCaption("Bern · 2016–2026", `${tourNum(tourCount("BE", BE, from, to))} people started a business of their own.`);
                 await tourLanded(run);
-                tourDrift({ pitch: 55, bearing: -20, zoom: 13 }, 6000);
-                await tourPlay(run, from, to, 6000);
+                tourDrift({ pitch: 55, bearing: -20, zoom: 13 }, 4500);
+                await tourPlay(run, from, to, 4500);
 
                 // 4 · Vaud: the closings around the pandemic, slower, all forms
                 const y19 = [tourDay("2019-01-01"), tourDay("2019-12-31")], y20 = [tourDay("2020-01-01"), tourDay("2020-12-31")];
