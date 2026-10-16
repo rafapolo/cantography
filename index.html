@@ -6533,10 +6533,19 @@ self.onmessage=async({data})=>{
                 tlMoving = false;
                 tlRate = TL_SPEED;
                 map.stop();
-                map.setPadding({ top: 0, bottom: 0, left: 0, right: 0 });
                 tourSkip = 0;
-                if (map.getZoom() < 6) map.jumpTo({ zoom: 6 });
-                map.setMinZoom(6);
+                // the camera hands over where the film left it: the padding beside the
+                // legend goes with what is under the screen's middle kept there, and a
+                // phone's whole-country view eases in to the page's zoom 6, no jump
+                const cv = map.getCanvas();
+                const cam = { center: map.unproject([cv.clientWidth / 2, cv.clientHeight / 2]), padding: { top: 0, bottom: 0, left: 0, right: 0 } };
+                if (map.getZoom() < 6 && !reduceMotion) {
+                    map.easeTo({ ...cam, zoom: 6, duration: 900, essential: true });
+                    map.once("moveend", () => { if (!tourOn) map.setMinZoom(6); });
+                } else {
+                    map.jumpTo(cam);
+                    map.setMinZoom(6);
+                }
                 const s = tourSaved;
                 tourForms([...s.labels]);
                 // and the hand-held look back, once the forms' refresh has run auto
