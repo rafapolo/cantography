@@ -67,7 +67,7 @@ What the timeline cannot show: companies deleted **before 2018** (no source list
 The **▶ tour** button among the chips at the bottom right plays a ~70 s film of the map that also shows how to use it, with music made in the browser as it plays. **♪ sound** turns the music off or on and is hidden where the browser can't play it; **✕ esc** or **Esc** stops the tour and puts the map back the way it was. Open `?tour=1` to start it on its own. The scenes, the music and the link options are in [tour.md](tour.md).
 
 ### On a phone
-The search takes the whole top row; night view and timeline stack on the right under the legend button. The panels and the company card open as bottom sheets — tap the corner icons to open them and the map to close them. A pinch zooms the map, never the page. On desktop, the **‹** and **›** arrows in each panel header slide it out of the way.
+The search takes the whole top row; night view and timeline stack on the right under the legend button. The panels and the company card open as bottom sheets — tap the corner icons to open them and the map to close them. A pinch on the map zooms the map; elsewhere it zooms the page, for anyone who needs the text larger. On desktop, the **‹** and **›** arrows in each panel header slide it out of the way.
 
 ---
 
@@ -99,7 +99,7 @@ For those curious about how it works under the hood. The look and every colour a
 - The **night view** is a custom deck.gl layer: additive blending, auto exposure from the lamps in view and a per-lamp twinkle in the shader
 - The **timeline** (`data/timeline/`) has one lamp per company life, 1,049,000 in all. `events.bin.gz` (3.9 MB) holds, per lamp, its position on a uint16 grid (3–5 m) along a Morton curve, delta-coded and split into byte planes, its entry and deletion days, legal form and canton. The shader works out from the screen clock whether each lamp is dark, flashing, lit or burning out, so a frame only changes one uniform. Names come in 65 regional chunks of ~180 kB, fetched on the first hover over their region
 - A **service worker** caches the data files after the first visit; each rebuild bumps their version
-- The layout adapts to phones (bottom sheets, notch and home-bar safe areas, `100dvh`, 16px inputs and no page zoom, so a pinch only zooms the map)
+- The layout adapts to phones (bottom sheets, notch and home-bar safe areas, `100dvh`, 16px inputs so iOS does not zoom on focus; the page can still be zoomed, as WCAG 1.4.4 asks)
 - The map renders entirely in your browser using [deck.gl](https://deck.gl) and [MapLibre GL](https://maplibre.org/). `bun run build` bundles just the deck.gl classes the page uses into `vendor/deck.mjs` (223 kB gzipped, against 575 kB for the full build); run it once before serving the source folder
 - Keyboard navigation, ARIA labels, and colour contrast meet WCAG AA accessibility standards
 - The data files are gzip written by [zopfli](https://github.com/google/zopfli) (`scripts/zopfli_data.py`): the same format the browser already unzips, ~6% smaller than `gzip -9`. The deploy ships only what the page fetches

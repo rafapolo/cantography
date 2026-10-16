@@ -2,7 +2,7 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <title>Cantography — One company at a time</title>
         <meta name="description" content="Every one of Switzerland’s 795,271 registered companies on its building, coloured by legal form, with a timeline of entries and deletions since 1883. Open data, no tracking." />
         <meta name="author" content="ExtraPolo.com" />
@@ -6160,8 +6160,6 @@ self.onmessage=async({data})=>{
                 };
             })();
             if (new URLSearchParams(location.search).get("music") === "debug") window.tourMusic = tourMusic;
-            // the map zooms itself: Safari pinches the whole page past user-scalable=no
-            document.addEventListener("gesturestart", (e) => e.preventDefault());
             document.getElementById("tour-sound").hidden = !window.AudioContext;
             document.getElementById("tour-sound").addEventListener("click", () => tourMusic.toggle());
             // a tour started from the link has no sound until the first click or key
