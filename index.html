@@ -3390,10 +3390,13 @@ in float night_seed;
                 if (!s) return { amount: 0, focus: 0, x: 0, night: nightView };
                 const R = NIGHT_RADIUS * night.size, area = Math.PI * R * R;
                 const cover = area <= 1 ? area : Math.max(1, area / (s.px * s.px));
+                // a wide lamp (the size knob) spills over the cells around: up to 3 × 3 of them
+                const spill = (area * night.light) / (s.px * s.px);
                 let glow = 0, lamps = 0;
                 for (let i = 0; i < AUTO_BINS; i++) {
                     if (!autoCells[i]) continue;
-                    glow += autoCells[i] * Math.min(1, (autoPoints[i] / autoCells[i]) * night.light * cover);
+                    const per = autoPoints[i] / autoCells[i];
+                    glow += autoCells[i] * Math.min(1, per * night.light * cover) * clamp(per * spill, 1, 9);
                     lamps += autoPoints[i];
                 }
                 // a cell's glow is capped, its lamps aren't: the gathering is counted in lamps
