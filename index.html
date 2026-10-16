@@ -1991,6 +1991,14 @@
                 /* two lines of a like length, no word left alone on the second */
                 text-wrap: balance;
             }
+            /* filmed (?rec=1): the film only, no player controls nor the tinted frame */
+            body.film #tour-stop,
+            body.film #tour-sound,
+            body.film #tour-left,
+            body.film #tour-progress,
+            body.film::after {
+                visibility: hidden;
+            }
             /* a drawn pointer that goes to the controls and clicks them */
             #tour-cursor {
                 position: absolute;
@@ -2385,6 +2393,11 @@
             const [RADIUS_MIN, RADIUS_MAX] = _rParam
                 ? _rParam.split(",").map(Number)
                 : [0.5, 2];
+            // ?rec=1 films the tour: no player controls on screen, and the lamps a little
+            // larger, so the dots outlast the video's compression
+            const FILM = new URLSearchParams(location.search).has("rec");
+            const FILM_SIZE = FILM ? 1.25 : 1;
+            if (FILM) document.body.classList.add("film");
 
             // ── i18n ──────────────────────────────────────────────────────────────
             let currentLang = "en";
@@ -3826,7 +3839,7 @@ self.onmessage=async({data:{id,cantonId,base}})=>{try{const c=await load(base,ca
                     getFillColor: [...NIGHT_RGB, 255],
                     getRadius: 1,
                     radiusUnits: "pixels",
-                    radiusScale: NIGHT_RADIUS * Math.max(night.size, 0.1),
+                    radiusScale: NIGHT_RADIUS * FILM_SIZE * Math.max(night.size, 0.1),
                     radiusMinPixels: 0,
                     radiusMaxPixels: 100,
                     // the light is the shader's gain, not the layer opacity
@@ -4275,7 +4288,7 @@ vec3 tl_state() {
                     getFillColor: [...NIGHT_RGB, 255],
                     getRadius: 1,
                     radiusUnits: "pixels",
-                    radiusScale: NIGHT_RADIUS * Math.max(night.size, 0.1),
+                    radiusScale: NIGHT_RADIUS * FILM_SIZE * Math.max(night.size, 0.1),
                     radiusMinPixels: 0,
                     radiusMaxPixels: 100,
                     light: night.light,

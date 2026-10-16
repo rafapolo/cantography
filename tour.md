@@ -34,7 +34,7 @@ The tour has its own music, made in the browser as it plays (no sound file). A d
 
 - **♪ sound** beside **✕ esc** turns it off or on; the choice is kept in this browser. A tour started from `?tour=1` may be held silent by the browser until the first click or key.
 - With `?t=`, the scenes skipped are silent; the sound comes in where the film starts.
-- `?rec=1` saves the music of a tour played to the end as `cantography-tour.webm`, to lay under a screen recording made in the same window.
+- `?rec=1` is for filming: it hides **♪ sound**, **✕ esc**, the progress line, the seconds left and the tinted frame, draws the lamps 25% larger so they survive the video's compression, and saves the music of a tour played to the end as `cantography-tour.webm`, to lay under a screen recording made in the same window.
 - `?music=debug` exposes `tourMusic` on `window` (notes per scene, `tourMusic.rms()`).
 
 ## Scenes
