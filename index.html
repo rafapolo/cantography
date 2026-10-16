@@ -5927,17 +5927,20 @@ self.onmessage=async({data})=>{
                     const o = osc("sine", hz(key.root - 12) * 1.5, g, t, t + 1.3);
                     o.frequency.exponentialRampToValueAtTime(hz(key.root - 12), t + 0.08);
                 }
-                // resumed from a tap or a key yet still not running: this browser won't play it, so no ♪
+                // resumed from a tap or a key yet still held: this browser won't play it, so no ♪.
+                // iOS's "interrupted" (a call, another app's sound) passes, and ♪ comes back once it runs
                 function unlock() {
                     const tapped = navigator.userActivation?.isActive;
-                    ac.resume().catch(() => {});
-                    if (tapped) setTimeout(() => { if (on && ac.state !== "running") document.getElementById("tour-sound").hidden = true; }, 1000);
+                    let held = true;
+                    ac.resume().then(() => { held = false; }, () => {});
+                    if (tapped) setTimeout(() => { if (held && on && ac.state === "suspended") document.getElementById("tour-sound").hidden = true; }, 1000);
                 }
                 function label() {
                     const btn = document.getElementById("tour-sound");
                     // one word, struck through when silent: "♪ off" struck through read as on
                     const playing = on && ac?.state === "running";
                     btn.setAttribute("aria-pressed", playing ? "true" : "false");
+                    if (ac?.state === "running") btn.hidden = false;
                 }
                 // the sound comes up once the film runs (not while ?t= skips ahead)
                 function wake() {
@@ -6001,7 +6004,13 @@ self.onmessage=async({data})=>{
                     stop(finished) {
                         // ♪ off lasts one tour: the next one, on this page too, starts with its music
                         on = true;
-                        if (!ac || !begun) return;
+                        if (!ac) return;
+                        // stopped while loading: nothing played, but start() woke the context
+                        if (!begun) {
+                            clearTimeout(nap);
+                            nap = setTimeout(() => { if (!begun) ac.suspend().catch(() => {}); }, 300);
+                            return;
+                        }
                         begun = live = false;
                         play = track = null;
                         map.off("move", camera);
@@ -6022,11 +6031,18 @@ self.onmessage=async({data})=>{
                     },
                     toggle() {
                         // blocked by the browser (a tour started from the link): the click lets it play
-                        if (on && ac && ac.state !== "running") { unlock(); return; }
+                        if (on && ac && ac.state === "suspended") { unlock(); return; }
                         on = !on;
                         if (ac) {
                             if (on) { unlock(); live = false; wake(); }
-                            else { live = false; out.gain.setTargetAtTime(0, ac.currentTime, 0.1); }
+                            else {
+                                // the fade-in may still be climbing: cut it where it is
+                                live = false;
+                                const t = ac.currentTime;
+                                out.gain.cancelScheduledValues(t);
+                                out.gain.setValueAtTime(out.gain.value, t);
+                                out.gain.setTargetAtTime(0, t, 0.1);
+                            }
                         }
                         label();
                     },
@@ -6149,8 +6165,13 @@ self.onmessage=async({data})=>{
             document.getElementById("tour-sound").hidden = !window.AudioContext;
             document.getElementById("tour-sound").addEventListener("click", () => tourMusic.toggle());
             // a tour started from the link has no sound until the first click or key
-            for (const ev of ["pointerdown", "keydown"])
+            // iOS lets sound out on a touch's end, not its start
+            for (const ev of ["pointerdown", "pointerup", "keydown"])
                 document.addEventListener(ev, (e) => { if (tourOn && e.target.id !== "tour-sound") tourMusic.start(); }, true);
+            // back from another app or tab: iOS leaves the sound interrupted until asked again
+            const tourWakeSound = () => { if (tourOn && !document.hidden) tourMusic.start(); };
+            document.addEventListener("visibilitychange", tourWakeSound);
+            addEventListener("pageshow", tourWakeSound);
             // the camera moves are part of the film: essential, so reduced motion doesn't
             // drop them; under reduced motion the tour cuts from shot to shot instead
             let tourLanding = Promise.resolve();
