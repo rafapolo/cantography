@@ -17,6 +17,26 @@ This file describes what happens in each scene. To change something, edit it her
 - **Reduced motion.** With `prefers-reduced-motion`, the camera cuts from shot to shot instead of flying, and the 360° turns are left out.
 - **Centring.** While the legend shows on a wide screen, the place sits in the middle of the map beside it, not behind it; the legend is centred vertically in the frame. On screens 1400 px wide or more the caption stays in the middle of the screen, kept off the legend by the same margin on both sides; narrower, it keeps to the map's side of the legend.
 
+## Sound
+
+The tour has its own music, made in the browser as it plays (no sound file). A drone and a chord per scene sit under the camera: closer in, the sound is brighter; the turns pan it; a tilt gives it more room; each flight is a gust of wind. While the timeline runs, the companies that open (in Vaud, that close) ring as bells in the scene's scale, one voice per legal form, and a low pulse marks each year (each decade in Basel). The notes follow the timeline's days, so every run plays the same ones.
+
+| scene | key |
+|---|---|
+| 0 · Switzerland | D lydian |
+| 1 · Geneva | A |
+| 2 · Zurich | F♯ dorian |
+| 3 · Bern | B aeolian |
+| 4 · Vaud | D minor, an octave lower |
+| 5 · search | the drone only, and the keys' clicks |
+| 6a · Basel | D major, the chord growing for 10 s |
+| 6b · the end | the opening's chord, then a 2.5 s fade |
+
+- **♪ sound** beside **✕ esc** turns it off or on; the choice is kept in this browser. A tour started from `?tour=1` may be held silent by the browser until the first click or key.
+- With `?t=`, the scenes skipped are silent; the sound comes in where the film starts.
+- `?rec=1` saves the music of a tour played to the end as `cantography-tour.webm`, to lay under a screen recording made in the same window.
+- `?music=debug` exposes `tourMusic` on `window` (notes per scene, `tourMusic.rms()`).
+
 ## Scenes
 
 Times measured on 2026-10-15, in a 1030×1037 window, then shortened by 2.9 s.
