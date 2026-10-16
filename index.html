@@ -5932,7 +5932,14 @@ self.onmessage=async({data})=>{
                     night: nightView,
                     search: document.getElementById("search-input").value,
                     legendCollapsed: document.getElementById("legend").classList.contains("collapsed"),
+                    // a look held by hand; the film always runs on auto light and size
+                    look: knobsLocked ? { light: night.light, size: night.size } : null,
                 };
+                if (knobsLocked) {
+                    setLocked(false);
+                    autoSnap();
+                    redrawLayer();
+                }
                 hideTooltip();
                 closeResults();
                 // every sheet shut, its button too: none stays lit or open through the film
@@ -6096,6 +6103,14 @@ self.onmessage=async({data})=>{
                 map.setMinZoom(6);
                 const s = tourSaved;
                 tourForms([...s.labels]);
+                // and the hand-held look back, once the forms' refresh has run auto
+                if (s.look) {
+                    setLocked(true);
+                    autoStop();
+                    Object.assign(night, s.look);
+                    showKnobs();
+                    redrawLayer();
+                }
                 const legendShut = s.legendCollapsed && !(finished && window.innerWidth > 980);
                 document.getElementById("legend").classList.toggle("collapsed", legendShut);
                 if (window.innerWidth > 980)
