@@ -5705,7 +5705,17 @@ self.onmessage=async({data})=>{
             const tourDay = (iso) => Math.round((Date.parse(iso) - TL_EPOCH) / 864e5);
             const tourNum = (n) => n.toLocaleString("en-US");
             // the tour speaks English, whatever the page's language
-            const tourDate = (day) => new Date(TL_EPOCH + Math.floor(day) * 864e5).toLocaleDateString("en-US", { year: "numeric", month: "short", timeZone: "UTC" });
+            // asked every frame: one formatter, and the same day's text kept
+            const _tourDateFmt = new Intl.DateTimeFormat("en-US", { year: "numeric", month: "short", timeZone: "UTC" });
+            let _tourDateDay = NaN, _tourDateText = "";
+            const tourDate = (day) => {
+                const d = Math.floor(day);
+                if (d !== _tourDateDay) {
+                    _tourDateDay = d;
+                    _tourDateText = _tourDateFmt.format(new Date(TL_EPOCH + d * 864e5));
+                }
+                return _tourDateText;
+            };
             // the controls are shown being used only where the panels sit beside the map
             const tourTeaches = () => !_dockMQ.matches;
 
