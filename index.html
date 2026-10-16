@@ -3236,7 +3236,7 @@ in float night_seed;
             const GROUND = {
                 plane: { earth: "#0a0c11", water: "#05070b" },
                 // with the forms' colours the light is already up: a lighter slate, and
-                // lakes in a clear blue as if the sun were on them
+                // lakes in a deep blue, darker than the land
                 colors: { earth: "#1a202b", water: "#12263d" },
             };
             const ground = () => (nightView ? GROUND.plane : GROUND.colors);
@@ -3926,6 +3926,13 @@ self.onmessage=async({data:{id,cantonId,base}})=>{try{const c=await load(base,ca
             const TL_FLASH_SEC = 0.6; // an opening flares, then settles
             const TL_FADE_SEC = 1.0; // a closing burns red and goes out
             const TL_CLOSE_RGB = [255, 80, 40];
+            // far out every pixel holds many openings a frame and the flares add up into
+            // blots: the flare grows and burns less there, up to its full size close in
+            const TL_POP_FROM = 8;
+            const TL_POP_TO = 11;
+            const TL_POP_GROW_FAR = 0.6; // 1.6× the lamp at most, against 3.2× close in
+            const TL_POP_BOOST_FAR = 2.5; // night view's light at the flare's peak, against 6
+            const popAt = (z) => clamp((z - TL_POP_FROM) / (TL_POP_TO - TL_POP_FROM), 0, 1);
             let timelineOn = false;
             let tl = null; // { n, data, cumOpen, cumClose, lastDay, monthOpen, monthClose }
             let tlLoading = null;
@@ -3968,6 +3975,7 @@ layout(std140) uniform tlUniforms {
   float flash;
   float fade;
   float night;
+  float pop;
 } tl;
 `;
             const tlModule = {
@@ -3987,7 +3995,7 @@ vec3 tl_state() {
   return vec3(max(lit, step(1e-4, fc)), fo, fc);
 }
 `,
-                uniformTypes: { day: "f32", flash: "f32", fade: "f32", night: "f32" },
+                uniformTypes: { day: "f32", flash: "f32", fade: "f32", night: "f32", pop: "f32" },
                 getUniforms: (p) => p,
                 inject: {
                     // the address's own depth (see loadTimeline)
@@ -3996,14 +4004,14 @@ vec3 tl_state() {
 `,
                     "vs:DECKGL_FILTER_SIZE": `
   vec3 tls = tl_state();
-  size *= tls.x * (1.0 + 2.2 * tls.y * tls.y + 0.8 * tls.z);
+  size *= tls.x * (1.0 + mix(${TL_POP_GROW_FAR.toFixed(2)}, 2.2, tl.pop) * tls.y * tls.y + 0.8 * tls.z);
 `,
                     "vs:DECKGL_FILTER_COLOR": `
   vec3 tlc = tl_state();
   vec3 spark = tl.night > 0.5 ? vec3(1.0, 0.92, 0.8) : vec3(1.0);
   color.rgb = mix(color.rgb, spark, tlc.y);
   if (tlc.z > 0.0) color.rgb = vec3(${TL_CLOSE_RGB.map((v) => (v / 255).toFixed(3)).join(", ")});
-  float boost = tl.night > 0.5 ? 6.0 : 1.0;
+  float boost = tl.night > 0.5 ? mix(${TL_POP_BOOST_FAR.toFixed(2)}, 6.0, tl.pop) : 1.0;
   // at rest the lamps of one address add up to one map lamp; a flash still gets its full light
   color.a = tlc.z > 0.0 ? tlc.z * (tl.night > 0.5 ? 4.0 : 1.0) : color.a * (instanceWeight + boost * tlc.y);
   color.a *= tlc.x;
@@ -4027,13 +4035,13 @@ vec3 tl_state() {
                         });
                     }
                     draw(opts) {
-                        const { day, flash, fade, night } = this.props;
-                        this.setShaderModuleProps({ tl: { day, flash, fade, night } });
+                        const { day, flash, fade, night, pop } = this.props;
+                        this.setShaderModuleProps({ tl: { day, flash, fade, night, pop } });
                         super.draw(opts);
                     }
                 }
                 L.layerName = name;
-                L.defaultProps = { ...Base.defaultProps, day: 0, flash: 30, fade: 50, night: 0 };
+                L.defaultProps = { ...Base.defaultProps, day: 0, flash: 30, fade: 50, night: 0, pop: 1 };
                 return L;
             };
             const TimelineNightLayer = withTimeline(NightLayer, "TimelineNightLayer");
@@ -4158,6 +4166,7 @@ vec3 tl_state() {
                     // the same wall-clock length at every speed; none at rest
                     flash: tlPlaying || tlMoving ? TL_FLASH_SEC * tlRate : 0,
                     fade: tlPlaying || tlMoving ? TL_FADE_SEC * tlRate : 0,
+                    pop: popAt(z),
                 };
                 // the same lamps as the map: ember in night view, the legal forms'
                 // colors otherwise, lit by the same exposure (auto or the light panel)
