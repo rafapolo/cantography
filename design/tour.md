@@ -7,15 +7,15 @@ This file describes what happens in each scene. To change something, edit it her
 ## General rules
 
 - **Frame.** Black cinema bars at 2.39:1 (at most 16% of the screen each) and a thin progress line on the bottom bar's edge. The whole interface is hidden, except the control the scene is teaching.
-- **Text.** In English, whatever the page's language. The caption has two parts: a small label on top (the *kicker*, usually place · years) and the line. The kicker sits on the panels' dark glass, so it reads over the brightest lamps.
+- **Text.** In English, whatever the page's language. The caption has two parts: a small label on top (the *kicker*, usually place · years) and the line. The kicker sits on the panels' dark glass, so it reads over the brightest lamps. While the film loads, the count (*Getting the map ready… n %*) is the page's own loading notice, in the middle of the frame, not a caption.
 - **Numbers.** Counted in the browser from the timeline; none is hard-coded.
 - **Colours.** The legend only makes sense with night view **off**: each legal form shows in its own colour. Night view comes back in Vaud, where the red of the closures is what matters, stays for the search and in Basel, which ends in the forms' colours.
 - **Pointer.** Only on wide screens (above 980 px). On phones the tour applies the filters without showing the clicks, but waits the time they would take: the camera lands before it turns, and the tour lasts the same.
 - **Phones.** The timeline panel stays hidden; the big date at the top left keeps the time. The opening and the end show the whole of Switzerland, at whatever zoom fits the width. The search card opens just under the search, clear of the caption.
-- **Short screens.** The legend stays inside the frame and scrolls to the item before the click; while it shows, the caption keeps to the map's side of it.
+- **Short screens.** The legend stays inside the frame and scrolls to the item before the click.
 - **Leaving.** The **✕ esc** button sits in the top right corner, on the black bar.
 - **Reduced motion.** With `prefers-reduced-motion`, the camera cuts from shot to shot instead of flying, and the 360° turns are left out.
-- **Centring.** While the legend shows on a wide screen, the place sits in the middle of the map beside it, not behind it; the legend is centred vertically in the frame. On screens 1400 px wide or more the caption stays in the middle of the screen, kept off the legend by the same margin on both sides; narrower, it keeps to the map's side of the legend.
+- **Centring.** While the legend shows on a wide screen, the place sits in the middle of the map beside it, not behind it; the legend is centred vertically in the frame. The caption stays in the middle of the screen at every width, kept off the legend by the same margin on both sides, so on a narrower screen it wraps rather than moves.
 
 ## Sound
 

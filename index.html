@@ -2087,10 +2087,9 @@
                 opacity: 1;
                 transform: none;
             }
-            /* the loading count, on one line however narrow the screen */
-            #tour-cap.loading #tour-line {
-                white-space: nowrap;
-                font-size: min(clamp(20px, 2.6vw, 38px), 5.4vw);
+            /* the tour's loading notice, over the film's frame */
+            body.touring #progress {
+                z-index: 45;
             }
             /* the timeline shows under the caption */
             body.tour-tl #tour-cap {
@@ -2235,7 +2234,6 @@
             body.touring .panel-toggle,
             body.touring .chips,
             body.touring .dock,
-            body.touring #progress,
             body.touring #light-panel,
             body.touring .maplibregl-ctrl {
                 visibility: hidden !important;
@@ -2246,17 +2244,11 @@
                 bottom: calc(var(--lb) + 16px);
                 justify-content: safe center;
             }
-            /* beside the legend, the caption keeps to the map's side of it */
+            /* beside the legend, the caption stays in the middle of the screen however
+               wide, kept off the legend (305px from the edge) the same on both sides */
             @media (min-width: 981px) {
                 body.touring.tour-legend #tour-cap {
-                    padding-right: calc(8vw + 305px);
-                }
-            }
-            /* wide enough, it stays in the middle of the screen, kept off the legend
-               the same on both sides */
-            @media (min-width: 1400px) {
-                body.touring.tour-legend #tour-cap {
-                    padding-left: calc(8vw + 305px);
+                    padding: 0 calc(305px + 36px);
                 }
             }
             /* the tour over, the page's controls come back in, not all in one frame */
@@ -5498,7 +5490,8 @@ vec3 tl_state() {
                 const bootDone = () => {
                     if (booted || !mapShown || cantonsIn !== bootCantons.length) return;
                     booted = true;
-                    hideProgress();
+                    // a tour loading meanwhile keeps the notice, counting its own
+                    if (!tourOn) hideProgress();
                     setTimeout(adaptQuality, 1500);
                     // the legend slides in a second after the map and the notice are done,
                     // on desktop and only if nobody opened or shut it in the meantime
@@ -5511,7 +5504,7 @@ vec3 tl_state() {
                 showProgress(t("loadingCompanies"), 0);
                 const counted = (d) => {
                     cantonsIn++;
-                    if (!mapShown || cantonsIn < bootCantons.length) showProgress(t("loadingCompanies"), cantonsIn / bootCantons.length);
+                    if (!tourOn && (!mapShown || cantonsIn < bootCantons.length)) showProgress(t("loadingCompanies"), cantonsIn / bootCantons.length);
                     bootDone();
                     return d;
                 };
@@ -7485,7 +7478,6 @@ self.onmessage=async({data})=>{
                 const cap = document.getElementById("tour-cap");
                 cap.classList.remove("on");
                 setTimeout(() => {
-                    cap.classList.remove("loading");
                     document.getElementById("tour-kicker").textContent = kicker;
                     document.getElementById("tour-line").textContent = line;
                     document.getElementById("tour-sep").hidden = !kicker || !line;
@@ -7705,13 +7697,10 @@ self.onmessage=async({data})=>{
                     const tileFrac = tiles.length ? tilesIn / tiles.length : 0;
                     return cantons * 0.5 + tlIn * 0.15 + search * 0.15 + tileFrac * 0.2;
                 };
-                document.getElementById("tour-kicker").textContent = "loading";
-                document.getElementById("tour-cap").classList.add("on", "loading");
-                // the percentage ticks five times a second: a screen reader hears the captions, not that
-                document.getElementById("tour-cap").setAttribute("aria-busy", "true");
-                const show = () => {
-                    document.getElementById("tour-line").textContent = `Getting the map ready… ${Math.round(frac() * 100)}%`;
-                };
+                // the page's loading notice, in the film's English; the percentage ticks
+                // five times a second, so a screen reader is not told each one
+                document.getElementById("progress").setAttribute("aria-busy", "true");
+                const show = () => showProgress("Getting the map ready…", frac());
                 show();
                 const ticker = setInterval(show, 200);
                 try {
@@ -7748,7 +7737,8 @@ self.onmessage=async({data})=>{
                     await tourWait(run, 400);
                 } finally {
                     clearInterval(ticker);
-                    document.getElementById("tour-cap").removeAttribute("aria-busy");
+                    document.getElementById("progress").removeAttribute("aria-busy");
+                    hideProgress();
                     if (tlWarming) {
                         tlWarming = false;
                         redrawLayer();
