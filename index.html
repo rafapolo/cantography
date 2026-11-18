@@ -7547,16 +7547,27 @@ self.onmessage=async({data})=>{
                 tourPointerOff();
                 await tourWait(run, 300);
             }
-            // picked in the legend, in sight: none then each form, or all of them
+            // picked in the legend, in sight: the new forms switched on before the old ones
+            // go off, so the map never goes dark between two picks; when that takes more
+            // than one click over it, none then each form (or all of them)
             async function tourPickForms(run, labels) {
+                const add = labels ? labels.filter((l) => !activeLabels.has(l)) : [];
+                const drop = labels ? [...activeLabels].filter((l) => !labels.includes(l)) : [];
+                const toggle = labels && activeLabels.size > 0 && add.length + drop.length <= labels.length + 2;
+                const clicks = toggle ? add.length + drop.length : 1 + (labels || []).length;
                 if (!tourTeaches()) {
                     tourForms(labels);
-                    await tourWait(run, 300 + 1050 * (1 + (labels || []).length));
+                    await tourWait(run, 300 + 1050 * clicks);
                     return;
                 }
                 await tourWait(run, 300);
-                await tourClick(run, document.getElementById(labels ? "btn-deselect-all" : "btn-select-all"));
-                for (const label of labels || []) await tourClick(run, document.querySelector(`.legend-item[data-label="${CSS.escape(label)}"]`));
+                const item = (label) => document.querySelector(`.legend-item[data-label="${CSS.escape(label)}"]`);
+                if (toggle) {
+                    for (const label of [...add, ...drop]) await tourClick(run, item(label));
+                } else {
+                    await tourClick(run, document.getElementById(labels ? "btn-deselect-all" : "btn-select-all"));
+                    for (const label of labels || []) await tourClick(run, item(label));
+                }
                 tourPointerOff();
             }
             // lamps of a canton and some legal forms that opened (or closed) between two days
